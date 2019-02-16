@@ -1,0 +1,13 @@
+POST	/any/login
+POST	/any/signup
+POST	/any/forgot-password
+
+
+GET	/any/trophies
+
+
+GET	/stats
+POST	/stats
+
+
+GET	/trophies
