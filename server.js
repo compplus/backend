@@ -5,12 +5,7 @@ var debug = true
 
 
 var go = Promise .resolve ()
-var T = _x => _fn_like =>
-	!! (_fn_like .constructor === Array) ?
-		!! (_fn_like .length === 0) ? _x
-		: T (T (_x) (R .head (_fn_like))) (R .tail (_fn_like))
-	:!! (_fn_like .constructor === Function) ? _fn_like (_x)
-	: undefined
+var suppose = fn_form => fn_form ()
 var equals = x => y => R .equals (x) (y)
 var impure = dirty_f => x => {;dirty_f (x)}
 var fixed = fn => x =>
@@ -84,8 +79,8 @@ var server_ = routes =>
 		.use (require ('koa-cors') ())
 		.use (impure ((ctx, next) =>
 			next ()
-			.catch ((err) => {;
-				impure ({;console .error (err)}
+			.catch ((err) => {
+				;console .error (err)
 				
 				;ctx .type = 'application/json'
 				;ctx .status = /*err .code || */500
@@ -102,7 +97,7 @@ var server_ = routes =>
 module .exports = server_ (routes => routes
 	.post ('/any/signup', impure ((ctx, next) =>
 		go
-		.then (_ => {;
+		.then (_ => {
 			var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = ctx .request .body
 			
 			;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
@@ -112,7 +107,7 @@ module .exports = server_ (routes => routes
 		.then (respond) ) )
 	.post ('/any/login', impure ((ctx, next) =>
 		go
-		.then (_ => {;
+		.then (_ => {
 			var { username, password } = ctx .request .body
 			
 			;return create_client ({ username, password }) })
