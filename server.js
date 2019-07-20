@@ -132,4 +132,19 @@ module .exports = server_ (routes => routes
 		.then (_ => ({ ok : true }))
 		.catch (expect_ok)
 		.then (respond) ) )
-	)
+	.post ('/update', impure ((ctx, next) =>
+		go
+		.then (_ => {
+			var { username, password } = ctx .request .body 
+			var current_user = find_user ({ username, password }) 
+			users = R .reject (equals (current_user)) (users)
+
+			for (var attr in ctx .request .body) {
+				current_user [attr] = ctx .request .body [attr] }
+
+			;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
+			;return create_client ({ username, password }) })
+		.then (_client => ({ ok : true, client : _client }))
+		.catch (expect_ok)
+		.then (respond) ) )
+)
