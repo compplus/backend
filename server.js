@@ -132,4 +132,31 @@ module .exports = server_ (routes => routes
 		.then (_ => ({ ok : true }))
 		.catch (expect_ok)
 		.then (respond) ) )
-	)
+	.post ('/update', impure ((ctx, next) =>
+		go
+		.then (_ => {
+			var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = ctx .request .body
+			
+			current_user = find_user ({ username, password }) 
+			//delete the user
+			users = R.remove(({ user, current_user }) => user === current_user, users)
+			//find the info that is updated
+			if (username != null) {current_user.username = username}
+			if (role != null) {current_user.role = role}
+			if (email != null) {current_user.email = email}
+			if (password != null) {current_user.password = password}
+			if (first_name != null) {current_user.first_name = first_name}
+			if (last_name != null) {current_user.last_name = last_name}
+			if (gender != null) {current_user.gender = gender}
+			if (age != null) {current_user.age = age}
+			if (height != null) {current_user.height = height}
+			if (weight != null) {current_user.weight = weight}
+			if (faculty != null) {current_user.faculty = faculty}
+			if (department != null) {current_user.department = department}
+			//create the new user with the updated info
+			;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
+			;return create_client ({ username, password }) })
+		.then (_client => ({ ok : true, client : _client }))
+		.catch (expect_ok)
+		.then (respond) ) )
+)
