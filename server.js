@@ -8,12 +8,6 @@ var go = Promise .resolve ()
 var suppose = fn_form => fn_form ()
 var equals = x => y => R .equals (x) (y)
 var impure = dirty_f => x => {;dirty_f (x)}
-var fixed = fn => x =>
-	suppose (
-	( y = fn (x)
-	) =>
-	!! equals (x) (y) ? x
-	? fixed (fn) (y) )
 
 
 
@@ -71,7 +65,7 @@ var expect_ok = _error => {
 	;console .error (_error)
   
 	return { error: 'An unexpected error occured' } }
-var respond = _x => {;ctx .body = _x}
+var respond = ctx => _x => {;ctx .body = _x}
 
 var server_ = routes =>
 	require ('koa-qs') (new (require ('koa')))
@@ -104,7 +98,7 @@ module .exports = server_ (routes => routes
 			;return create_client ({ username, password }) })
 		.then (_client => ({ ok : true, client : _client }))
 		.catch (expect_ok)
-		.then (respond) ) )
+		.then (respond (ctx)) ) )
 	.post ('/any/login', impure ((ctx, next) =>
 		go
 		.then (_ => {
@@ -113,7 +107,7 @@ module .exports = server_ (routes => routes
 			;return create_client ({ username, password }) })
 		.then (_client => ({ ok : _client === undefined, client : _client }))
 		.catch (expect_ok)
-		.then (respond) ) )
+		.then (respond (ctx)) ) )
 	.get ('/stats', impure ((ctx, next) =>
 		go
 		.then (_ => {
@@ -122,7 +116,7 @@ module .exports = server_ (routes => routes
 			return find_stats (client_user (client)) })
 		.then (_stats => ({ ok : _stats === undefined, stats : _stats }))
 		.catch (expect_ok)
-		.then (respond) ) )
+		.then (respond (ctx)) ) )
 	.post ('/stats', impure ((ctx, next) => 
 		go
 		.then (_ => {
@@ -131,5 +125,5 @@ module .exports = server_ (routes => routes
 			;return create_stat (client_user (client)) ({ timestamp, distance, calories, steps }) })
 		.then (_ => ({ ok : true }))
 		.catch (expect_ok)
-		.then (respond) ) )
+		.then (respond (ctx)) ) )
 	)
