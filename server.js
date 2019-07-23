@@ -7,7 +7,7 @@ var debug = true
 var go = Promise .resolve ()
 var suppose = fn_form => fn_form ()
 var equals = x => y => R .equals (x) (y)
-var impure = dirty_f => x => {;dirty_f (x)}
+var impure = dirty_f => (... x) => {;dirty_f (... x)}
 
 
 
