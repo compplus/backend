@@ -120,7 +120,7 @@ module .exports = server_ (routes => routes
 	.post ('/stats', impure ((ctx, next) => 
 		go
 		.then (_ => {
-			var { client, timestamp, distance, calories, steps } = ctx .query
+			var { client, timestamp, distance, calories, steps } = ctx .request .body
 
 			;return create_stat (client_user (client)) ({ timestamp, distance, calories, steps }) })
 		.then (_ => ({ ok : true }))
