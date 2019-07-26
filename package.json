@@ -1,5 +1,6 @@
 {
 	"dependencies": {
+		"camarche": "0.0.59",
 		"koa": "^2.7.0",
 		"koa-bodyparser": "^4.2.1",
 		"koa-compress": "^3.0.0",
@@ -8,6 +9,8 @@
 		"koa-morgan": "^1.0.1",
 		"koa-qs": "^2.0.0",
 		"koa-router": "^7.4.0",
-		"ramda": "^0.26.1"
+		"partial.lenses": "^14.17.0",
+		"ramda": "^0.26.1",
+		"s-js": "^0.4.9"
 	}
 }
