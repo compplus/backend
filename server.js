@@ -17,7 +17,26 @@ var debug = true
 
 var users = []
 var trophies = {}
+var teams = []
 
+//function for comparing elements in arrays. Returns an array of overlapping elements
+function compare (arr1, arr2){
+  const finalarray=[];
+  arr1.forEach((e1)=>arr2.forEach((e2)=>
+              {if(e1===e2){
+                finalarray.push(e1)
+              }
+	 }
+  ))
+  return finalarray;
+}
+
+var create_team = user => params => {
+	var leader = user.username
+	var members = [user.username]
+	var {teamname} = params
+	var team = { teamname, leader, members }
+	;teams = [ ... teams, team ] }
 var create_user = params => {
 	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = params
 	var user =
@@ -144,4 +163,24 @@ module .exports = server_ (routes => routes
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
+	//makes a team 
+	.post ('/makeTeam' , impure ((ctx, next) =>
+		go
+		.then (_ => {
+		       var { client, teamname } = ctx .request .body
+		       var allTeamNames=[] //array of all the teamnames
+			for (var i in teams){
+ 				 allTeamNames.push(teams[i].teamname)	
+			}
+			//make a new team if there is no existing team with same teamname
+		       if((compare([teamname], allTeamNames)).length == 0){
+			       ;create_team(client_user_(client))({teamname})
+		       } else{
+			       //.catch (expect_ok)
+		       }
+			return client })
+		.then (_client => ({ ok: true, client: _client }))
+		.catch (expect_ok)
+		.then (respond (ctx)) ) )
+	
 	)
