@@ -129,7 +129,9 @@ module .exports = server_ (routes => routes
 	.post ('/update', impure ((ctx, next) =>
 		go
 		.then (_ => {
-			var { username, password } = ctx .request .body 
+			var client  = ctx .request .body 
+			var user= client_user_(client)
+			var { username, password } = user
 			var current_user = find_user ({ username, password }) 
 			users = R .reject (equals (current_user)) (users)
 
