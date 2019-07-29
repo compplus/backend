@@ -16,6 +16,7 @@ var debug = true
 
 
 var users = []
+var temporary_users = {}
 var trophies = {}
 var teams = []
 
@@ -37,11 +38,14 @@ var create_team = user => params => {
 	var {teamname} = params
 	var team = { teamname, leader, members }
 	;teams = [ ... teams, team ] }
+var create_temporary_user = params => {
+		var { confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = params
+		var temporary_user =
+		{ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department
+		, stats: [] }
+		;temporary_users [ confirmation_code ] = temporary_user }
 var create_user = params => {
-	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = params
-	var user =
-	{ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department
-	, stats: [] }
+	var { user } = params
 	;users = [ ... users, user ] }
 var create_stat = user => stat => {
 	var { timestamp, distance, calories, steps } = stat
@@ -110,8 +114,23 @@ module .exports = server_ (routes => routes
 		go
 		.then (_ => {
 			var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = ctx .request .body
-			
-			;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
+			var confirmation_code = uuid()
+			;create_temporary_user ({ confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
+			//send email
+			;var _client = fresh_client ({ username, password })
+			return _client } )
+		.then (_client => ({ ok: true, client: _client }))
+		.catch (expect_ok)
+		.then (respond (ctx)) ) )
+	.post ('/any/confirmation', impure ((ctx, next) =>
+		go
+		.then (_ => {
+			var { confirmation_code } = ctx .query
+			var temporary_user = temporary_users [ confirmation_code ]
+			var username = temporary_user.username
+			var password = temporary_user.password
+			delete temporary_users [ confirmation_code ]
+			;create_user ({ temporary_user })
 			;var _client = fresh_client ({ username, password })
 			return _client } )
 		.then (_client => ({ ok: true, client: _client }))
