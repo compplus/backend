@@ -16,43 +16,38 @@ var debug = true
 
 
 var users = []
-var temporary_users = {}
+var unconfirmed_users = {}
 var trophies = {}
 var teams = []
 
-//function for comparing elements in arrays. Returns an array of overlapping elements
-function compare (arr1, arr2){
-  const finalarray=[];
-  arr1.forEach((e1)=>arr2.forEach((e2)=>
-              {if(e1===e2){
-                finalarray.push(e1)
-              }
-	 }
-  ))
-  return finalarray;
-}
-
-var create_team = user => params => {
-	var leader = user.username
-	var members = [user.username]
-	var {teamname} = params
-	var team = { teamname, leader, members }
+var create_team = user => team_info => {
+	var leader = user .username
+	var members = [ user .username ]
+	var { name } = team_info
+	var team = { name, leader, members }
 	;teams = [ ... teams, team ] }
-var create_temporary_user = params => {
-		var { confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = params
-		var temporary_user =
-		{ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department
-		, stats: [] }
-		;temporary_users [ confirmation_code ] = temporary_user }
-var create_user = params => {
-	var { user } = params
-	;users = [ ... users, user ] }
+var create_unconfirmed_user = unconfirmed_user => {
+	var { confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = unconfirmed_user
+	var unconfirmed_user =
+	{ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department
+	, stats: [] }
+	;unconfirmed_users [ confirmation_code ] = unconfirmed_user }
+var create_user = user => {
+	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = user
+	;users = [ ... users, { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } ] }
 var create_stat = user => stat => {
 	var { timestamp, distance, calories, steps } = stat
 	stat = { timestamp, distance, calories, steps }
 	;user .stats = [ ... user .stats, stat ] }
 
 
+var confirm_user = confirmation_code => {
+	;unconfirmed_users = R .dissoc (confirmation_code) (unconfirmed_users)
+	;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
+	return { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } }
+
+	
+var user_team_ = user => undefined // TODO
 var find_user = ({ username, password }) =>
 	R .find (({ _username, _password }) => R .and (equals (username) (_username)) (equals (password) (_password))
 	) (
@@ -114,23 +109,18 @@ module .exports = server_ (routes => routes
 		go
 		.then (_ => {
 			var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = ctx .request .body
-			var confirmation_code = uuid()
-			;create_temporary_user ({ confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
+			var confirmation_code = uuid ()
+			;create_unconfirmed_user ({ confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
 			//send email
-			;var _client = fresh_client ({ username, password })
-			return _client } )
-		.then (_client => ({ ok: true, client: _client }))
+			} )
+		.then (_client => ({ ok: true }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
 	.post ('/any/confirmation', impure ((ctx, next) =>
 		go
 		.then (_ => {
 			var { confirmation_code } = ctx .query
-			var temporary_user = temporary_users [ confirmation_code ]
-			var username = temporary_user.username
-			var password = temporary_user.password
-			delete temporary_users [ confirmation_code ]
-			;create_user ({ temporary_user })
+			;var { username, password } = confirm_user (confirmation_code)
 			;var _client = fresh_client ({ username, password })
 			return _client } )
 		.then (_client => ({ ok: true, client: _client }))
@@ -173,8 +163,7 @@ module .exports = server_ (routes => routes
 			var current_user = find_user ({ username, password }) 
 			users = R .reject (equals (current_user)) (users)
 
-			for (var attr in ctx .request .body) {
-				current_user [attr] = ctx .request .body [attr] }
+			;current_user = { ... current_user, ... ctx .request .body }
 
 			;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
 			;var _client = fresh_client ({ username, password })
@@ -183,21 +172,19 @@ module .exports = server_ (routes => routes
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
 	//makes a team 
-	.post ('/makeTeam' , impure ((ctx, next) =>
+	.post ('/team' , impure ((ctx, next) =>
 		go
 		.then (_ => {
-		       var { client, teamname } = ctx .request .body
-		       var allTeamNames=[] //array of all the teamnames
-			for (var i in teams){
- 				 allTeamNames.push(teams[i].teamname)	
-			}
+			var { client, teamname } = ctx .request .body
+			var user = client_user_ (client)
+			
 			//make a new team if there is no existing team with same teamname
-		       if((compare([teamname], allTeamNames)).length == 0){
-			       ;create_team(client_user_(client))({teamname})
-		       } else{
-			       //.catch (expect_ok)
-		       }
-			return client })
+			if (equals (user_team_ (user)) (undefined)) {
+				;create_team (user) ({ name }) }
+			else {
+				//.catch (expect_ok)
+				}
+			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
