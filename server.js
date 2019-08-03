@@ -1,6 +1,5 @@
 var { R, suppose, equals } = require ('camarche/core')
 var { go, impure, trace, trace_as } = require ('camarche/effects')
-var R = require ('ramda')
 
 var debug = true
 
@@ -27,7 +26,7 @@ var create_team = user =>  {
 	var { name } = user. username
 	var invited = []
 	var team = { name, leader, members, invited }
-	;teams = [ ... teams, team ] 
+	;teams = [ ... teams, team ] }
 	
 var create_unconfirmed_user = unconfirmed_user => {
 	var { confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = unconfirmed_user
@@ -48,6 +47,8 @@ var confirm_user = confirmation_code => {
 	;unconfirmed_users = R .dissoc (confirmation_code) (unconfirmed_users)
 	;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
 	return { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } }
+var invite_email = team => email => {
+	;team .invited = [ ... team .invited, emails ] }
 
 //find the user's team 	
 var user_team_ = user => 
@@ -179,43 +180,46 @@ module .exports = server_ (routes => routes
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
 	//makes a team 
-	.post ('/team' , impure ((ctx, next) =>
-		go
-		.then (_ => {
-			var { client, teamname } = ctx .request .body
-			var user = client_user_ (client)
-			
-			//make a new team if the user doesn't have one
-			if (equals (user_team_ (user)) (undefined)) {
-				;create_team (user) ({ name }) }
-			else {
-				//.catch (expect_ok)
-				}
-			return client } )
-		.then (_client => ({ ok: true, client: _client }))
-		.catch (expect_ok)
-		.then (respond (ctx)) ) )
+//	.post ('/team' , impure ((ctx, next) =>
+//		go
+//		.then (_ => {
+//			var { client, teamname } = ctx .request .body
+//			var user = client_user_ (client)
+//			
+//			//make a new team if the user doesn't have one
+//			if (equals (user_team_ (user)) (undefined)) {
+//				;create_team (user) ({ name }) }
+//			else {
+//				//.catch (expect_ok)
+//				}
+//			return client } )
+//		.then (_client => ({ ok: true, client: _client }))
+//		.catch (expect_ok)
+//		.then (respond (ctx)) ) )
 	.post ('/invite', impure ((ctx, next) =>
 		go
 		.then (_ => {
-			var { client, emails  } = ctx .request .body
+			var { client, emails } = ctx .request .body
 			var user = client_user_ (client)
 			//make a new team if there is no existing team for the user
 			if (equals (user_team_ (user)) (undefined)) {
 				;create_team (user) }
+			var team = user_team_ (user)
 			//update invited list
-			user_team_ (user) .invited = user_team_ (user) .invited .concat(emails)		
+			;R .forEach (invite_email (team)) (emails)
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
-	.post ('/accept', impure((ctx, next) =>
+	//TODO: change to use team ids
+	.post ('/accept', impure ((ctx, next) =>
 		go
 		.then (_ => {
-			var { client, teamleader  } = ctx .request .body
+			var { client, teamleader } = ctx .request .body
 			var user = client_user_ (client)
 			//delete from original team
-			user_team_ (user) .members = R.without(user .username, user_team_ (user). members)
+			if (user_team_ (user)) {
+				;user_team_ (user) .members = R.without(user .username, user_team_ (user). members) }
 			//add to new team
 			user_team_ (teamleader) .members = [ ... user_team_ (teamleader) .members, user .username ]
 			//delete from invited list
