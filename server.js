@@ -20,12 +20,15 @@ var unconfirmed_users = {}
 var trophies = {}
 var teams = []
 
-var create_team = user => team_info => {
+
+var create_team = user =>  {
 	var leader = user .username
 	var members = [ user .username ]
-	var { name } = team_info
-	var team = { name, leader, members }
-	;teams = [ ... teams, team ] }
+	var { name } = user. username
+	var invited = []
+	var team = { name, leader, members, invited }
+	;teams = [ ... teams, team ] 
+	
 var create_unconfirmed_user = unconfirmed_user => {
 	var { confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = unconfirmed_user
 	var unconfirmed_user =
@@ -46,14 +49,18 @@ var confirm_user = confirmation_code => {
 	;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
 	return { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } }
 
-	
-var user_team_ = user => undefined // TODO
+//find the user's team 	
+var user_team_ = user => 
+	var username = user .username
+	var index = R.findIndex(team => R .includes (username) (team .members))(teams)// TODO
+	return teams[index]
 var find_user = ({ username, password }) =>
 	R .find (({ _username, _password }) => R .and (equals (username) (_username)) (equals (password) (_password))
 	) (
 	users )
 var find_stats = user => 
 	user .stats
+
 
 
 var clients = {}
@@ -178,12 +185,41 @@ module .exports = server_ (routes => routes
 			var { client, teamname } = ctx .request .body
 			var user = client_user_ (client)
 			
-			//make a new team if there is no existing team with same teamname
+			//make a new team if the user doesn't have one
 			if (equals (user_team_ (user)) (undefined)) {
 				;create_team (user) ({ name }) }
 			else {
 				//.catch (expect_ok)
 				}
+			return client } )
+		.then (_client => ({ ok: true, client: _client }))
+		.catch (expect_ok)
+		.then (respond (ctx)) ) )
+	.post ('/invite', impure ((ctx, next) =>
+		go
+		.then (_ => {
+			var { client, emails  } = ctx .request .body
+			var user = client_user_ (client)
+			//make a new team if there is no existing team for the user
+			if (equals (user_team_ (user)) (undefined)) {
+				;create_team (user) }
+			//update invited list
+			user_team_ (user) .invited = user_team_ (user) .invited .concat(emails)		
+			return client } )
+		.then (_client => ({ ok: true, client: _client }))
+		.catch (expect_ok)
+		.then (respond (ctx)) ) )
+	.post ('/accept', impure((ctx, next) =>
+		go
+		.then (_ => {
+			var { client, teamleader  } = ctx .request .body
+			var user = client_user_ (client)
+			//delete from original team
+			user_team_ (user) .members = R.without(user .username, user_team_ (user). members)
+			//add to new team
+			user_team_ (teamleader) .members = [ ... user_team_ (teamleader) .members, user .username ]
+			//delete from invited list
+			user_team_ (user) .invited = R.without(user .email, user_team_ (user) .invited)
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
