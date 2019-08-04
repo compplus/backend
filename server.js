@@ -26,7 +26,7 @@ var create_team = user =>  {
 	var { name } = user. username
 	var invited = []
 	var id = uuid ()
-	var team = { id, name, leader, members, invited }
+	var team = { id, name, leader, members, invited, totalStep }
 	;teams = { ... teams, [ id ]: team } }
 	
 var create_unconfirmed_user = unconfirmed_user => {
@@ -38,7 +38,7 @@ var create_unconfirmed_user = unconfirmed_user => {
 var create_user = user => {
 	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = user
 	var id = uuid ()
-	;users = { ... users, [ uuid ]: { id, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } } }
+	;users = { ... users, [ id ]: { id, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } } }
 var create_stat = user => stat => {
 	var { timestamp, distance, calories, steps } = stat
 	stat = { timestamp, distance, calories, steps }
@@ -62,6 +62,12 @@ var find_user = ({ username, password }) =>
 	R .values (users) )
 var find_stats = user => 
 	user .stats
+//find the team's stats
+var find_team = team => {
+	var { members, invited, totalStep } = team 
+	return { members, invited, totalStep }
+	}
+	
 
 
 
@@ -226,6 +232,15 @@ module .exports = server_ (routes => routes
 			teams[ID] .invited = R .without (user .email, teams[ID] .invited)
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
+		.catch (expect_ok)
+		.then (respond (ctx)) ) )
+	.get ('/team', impure ((ctx, next) =>
+		go
+		.then (_ => {
+			var { client } = ctx .request .body
+			var user = client_user_ (client)
+			return find_team (user_team_ (user)) } )
+		.then (_stats => ({ ok: (_stats) (undefined), teamStats: _stats }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
 	
