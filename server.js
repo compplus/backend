@@ -215,15 +215,15 @@ module .exports = server_ (routes => routes
 	.post ('/accept', impure ((ctx, next) =>
 		go
 		.then (_ => {
-			var { client, teamleader } = ctx .request .body
+			var { client, ID } = ctx .request .body
 			var user = client_user_ (client)
 			//delete from original team
 			if (user_team_ (user)) {
 				;user_team_ (user) .members = R .without (user .username, user_team_ (user). members) }
 			//add to new team
-			user_team_ (teamleader) .members = [ ... user_team_ (teamleader) .members, user .id ]
+			teams[ID] .members = [ ... teams[ID] .members, user .id ]
 			//delete from invited list
-			user_team_ (user) .invited = R .without (user .email, user_team_ (user) .invited)
+			teams[ID] .invited = R .without (user .email, teams[ID] .invited)
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
