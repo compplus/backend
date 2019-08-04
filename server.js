@@ -14,10 +14,10 @@ var debug = true
 
 
 
-var users = []
+var users = {}
 var unconfirmed_users = {}
 var trophies = {}
-var teams = []
+var teams = {}
 
 
 var create_team = user =>  {
@@ -25,8 +25,9 @@ var create_team = user =>  {
 	var members = [ user .username ]
 	var { name } = user. username
 	var invited = []
-	var team = { name, leader, members, invited }
-	;teams = [ ... teams, team ] }
+	var id = uuid ()
+	var team = { id, name, leader, members, invited }
+	;teams = { ... teams, [ id ]: team } }
 	
 var create_unconfirmed_user = unconfirmed_user => {
 	var { confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = unconfirmed_user
@@ -36,7 +37,8 @@ var create_unconfirmed_user = unconfirmed_user => {
 	;unconfirmed_users [ confirmation_code ] = unconfirmed_user }
 var create_user = user => {
 	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = user
-	;users = [ ... users, { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } ] }
+	var id = uuid ()
+	;users = { ... users, [ uuid ]: { id, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } } }
 var create_stat = user => stat => {
 	var { timestamp, distance, calories, steps } = stat
 	stat = { timestamp, distance, calories, steps }
@@ -51,14 +53,13 @@ var invite_email = team => email => {
 	;team .invited = [ ... team .invited, emails ] }
 
 //find the user's team 	
-var user_team_ = user => 
+var user_team_ = user => {
 	var username = user .username
-	var index = R.findIndex(team => R .includes (username) (team .members))(teams)// TODO
-	return teams[index]
+	return R .find (team => R .includes (username) (team .members)) (R .values (teams)) }
 var find_user = ({ username, password }) =>
 	R .find (({ _username, _password }) => R .and (equals (username) (_username)) (equals (password) (_password))
 	) (
-	users )
+	R .values (users) )
 var find_stats = user => 
 	user .stats
 
@@ -68,7 +69,6 @@ var clients = {}
 
 var fresh_client = ({ username, password }) => {
 	var _user = find_user ({ username, password })
-	;console .log (_user, users)
 	if (_user) {
 		var _client = uuid ()
 		while (clients [_client]) {;_client = uuid ()}
@@ -169,7 +169,7 @@ module .exports = server_ (routes => routes
 			var user= client_user_(client)
 			var { username, password } = user
 			var current_user = find_user ({ username, password }) 
-			users = R .reject (equals (current_user)) (users)
+			users = R .dissoc (current_user .id) (users)
 
 			;current_user = { ... current_user, ... ctx .request .body }
 
@@ -219,11 +219,11 @@ module .exports = server_ (routes => routes
 			var user = client_user_ (client)
 			//delete from original team
 			if (user_team_ (user)) {
-				;user_team_ (user) .members = R.without(user .username, user_team_ (user). members) }
+				;user_team_ (user) .members = R .without (user .username, user_team_ (user). members) }
 			//add to new team
-			user_team_ (teamleader) .members = [ ... user_team_ (teamleader) .members, user .username ]
+			user_team_ (teamleader) .members = [ ... user_team_ (teamleader) .members, user .id ]
 			//delete from invited list
-			user_team_ (user) .invited = R.without(user .email, user_team_ (user) .invited)
+			user_team_ (user) .invited = R .without (user .email, user_team_ (user) .invited)
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
