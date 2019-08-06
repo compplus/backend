@@ -51,11 +51,18 @@ var confirm_user = confirmation_code => {
 	return { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } }
 var invite_email = team => email => {
 	;team .invited = [ ... team .invited, emails ] }
+// function to calculate the total step of the team
+// var calc_total_step = teamID => {
+// 	var totalStep = 0
+// 	teams[teamID].members .forEach(function(userID){
+// 		totalStep+=users[userID] .stats .steps
+			
+		
 
 //find the user's team 	
 var user_team_ = user => {
-	var username = user .username
-	return R .find (team => R .includes (username) (team .members)) (R .values (teams)) }
+	var userID = user .id
+	return R .find (team => R .includes (userID) (team .members)) (R .values (teams)) }
 var find_user = ({ username, password }) =>
 	R .find (({ _username, _password }) => R .and (equals (username) (_username)) (equals (password) (_password))
 	) (
