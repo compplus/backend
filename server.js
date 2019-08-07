@@ -21,8 +21,8 @@ var teams = {}
 
 
 var create_team = user =>  {
-	var leader = user .username
-	var members = [ user .username ]
+	var leader = user .ID
+	var members = [ user .ID ]
 	var { name } = user. username
 	var invited = []
 	var id = uuid ()
@@ -56,6 +56,9 @@ var invite_email = team => email => {
 // 	var totalStep = 0
 // 	teams[teamID].members .forEach(function(userID){
 // 		totalStep+=users[userID] .stats .steps
+
+//TODO
+//var kick_user = 
 			
 		
 
@@ -74,7 +77,9 @@ var find_team = team => {
 	var { members, invited, totalStep } = team 
 	return { members, invited, totalStep }
 	}
-	
+//find the user's ID from username
+var find_id = username => 
+	return (R .find ( id => equals ( username )) ( users[id] .username )).id
 
 
 
@@ -232,7 +237,7 @@ module .exports = server_ (routes => routes
 			var user = client_user_ (client)
 			//delete from original team
 			if (user_team_ (user)) {
-				;user_team_ (user) .members = R .without (user .username, user_team_ (user). members) }
+				;user_team_ (user) .members = R .without (user .id, user_team_ (user). members) }
 			//add to new team
 			teams[ID] .members = [ ... teams[ID] .members, user .id ]
 			//delete from invited list
@@ -248,6 +253,23 @@ module .exports = server_ (routes => routes
 			var user = client_user_ (client)
 			return find_team (user_team_ (user)) } )
 		.then (_stats => ({ ok: (_stats) (undefined), teamStats: _stats }))
+		.catch (expect_ok)
+		.then (respond (ctx)) ) )
+	.post ('/team', impure ((ctx,next) =>
+		go
+	//kick members from a team. Only leader can do it.	
+	.post ('/kick', impure ((ctx, next) =>
+		go
+		.then (_ => {
+			var { client, ID_List } = ctx .request .body
+			var user = client_user_ (client)
+			//If the client is the leader
+			if ( user_team_ (user) .leader == user .ID ){
+				//delete list of IDs from team
+				if (user_team_ (user)) {
+					;user_team_ (user) .members = R .without ( ID_List , user_team_ (user). members )}}
+			return client } )
+		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
 	
