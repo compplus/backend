@@ -255,8 +255,9 @@ module .exports = server_ (routes => routes
 		.then (_stats => ({ ok: (_stats) (undefined), teamStats: _stats }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
-	.post ('/team', impure ((ctx,next) =>
-		go
+	//TODO
+// 	.post ('/team', impure ((ctx,next) =>
+// 		go
 	//kick members from a team. Only leader can do it.	
 	.post ('/kick', impure ((ctx, next) =>
 		go
