@@ -57,8 +57,9 @@ var invite_email = team => email => {
 // 	teams[teamID].members .forEach(function(userID){
 // 		totalStep+=users[userID] .stats .steps
 
-//TODO
-//var kick_user = 
+//Kist list of users from team
+var kick_user = user => ID_List => {
+	user_team_ (user) .members = R .without ( ID_List , user_team_ (user). members )}
 			
 		
 
@@ -237,7 +238,7 @@ module .exports = server_ (routes => routes
 			var user = client_user_ (client)
 			//delete from original team
 			if (user_team_ (user)) {
-				;user_team_ (user) .members = R .without (user .id, user_team_ (user). members) }
+				;kick_user (user)(user .id) }
 			//add to new team
 			teams[ID] .members = [ ... teams[ID] .members, user .id ]
 			//delete from invited list
@@ -268,7 +269,7 @@ module .exports = server_ (routes => routes
 			if ( user_team_ (user) .leader == user .ID ){
 				//delete list of IDs from team
 				if (user_team_ (user)) {
-					;user_team_ (user) .members = R .without ( ID_List , user_team_ (user). members )}}
+					;kick_user (user)(ID_List)}}
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
