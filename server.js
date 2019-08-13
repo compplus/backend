@@ -1,12 +1,13 @@
 var { R, suppose, equals } = require ('camarche/core')
 var { go, impure, trace, trace_as } = require ('camarche/effects')
+let { Pool } = require ('pg')
 
 var debug = true
 
 
 
 
-
+var pool = new Pool
 
 
 
@@ -21,47 +22,81 @@ var teams = {}
 
 
 var create_team = user =>  {
-	var leader = user .username
-	var members = [ user .username ]
+	var leader = user .id
+	var members = [ user .id ]
 	var { name } = user. username
 	var invited = []
 	var id = uuid ()
-	var team = { id, name, leader, members, invited }
-	;teams = { ... teams, [ id ]: team } }
-	
+	return pool .query ('INSERT INTO "teams" ("id", "name", "leader", "members", "invited")' + 'VALUES ( $1, $2, $3, $4, $5)', [ id, name, leader, members, invited ])
+	.then (_ => undefined) }
+
+
 var create_unconfirmed_user = unconfirmed_user => {
-	var { confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = unconfirmed_user
-	var unconfirmed_user =
-	{ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department
-	, stats: [] }
-	;unconfirmed_users [ confirmation_code ] = unconfirmed_user }
+	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = unconfirmed_user
+	var confirmation_code = uuid ()
+	return pool .query ('INSERT INTO "unconfirmed_users" ("username", "role", "email", "password", "first_name", "last_name", "gender", "age", "height", "weight", "faculty", "department", "confirmation_code")'
+		+ 'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)'
+		, [ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department, confirmation_code ])
+		.then (_ => undefined) }
+
+
 var create_user = user => {
 	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = user
 	var id = uuid ()
-	;users = { ... users, [ uuid ]: { id, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } } }
+	return pool .query ('INSERT INTO "users" ("username", "role", "email", "password", "first_name", "last_name", "gender", "age", "height", "weight", "faculty", "department", "id")'
+	+ 'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)'
+	, [ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department, id ])
+	.then (_ => undefined) }
+
+
 var create_stat = user => stat => {
 	var { timestamp, distance, calories, steps } = stat
-	stat = { timestamp, distance, calories, steps }
-	;user .stats = [ ... user .stats, stat ] }
+	var id = uuid ()
+	return pool .query ('INSERT INTO "stats" ("timestamp", "distance", "calories", "steps", "id" )' + 'VALUES ( $1, $2, $3, $4, $5)', [ timestamp, distance, calories, steps, id ])
+	.then (_ => undefined) }
 
 
 var confirm_user = confirmation_code => {
-	;unconfirmed_users = R .dissoc (confirmation_code) (unconfirmed_users)
-	;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
-	return { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } }
-var invite_email = team => email => {
-	;team .invited = [ ... team .invited, emails ] }
+	return pool .query (
+		'WITH the_unconfirmed_user AS ( ' + 
+			'DELETE FROM "unconfirmed_users" unconfirmed_user ' +
+			'WHERE "confirmation_code" = $1 ' +
+			'RETURNING unconfirmed_user .* ) ' +
+		', the_user AS ( ' + 
+			'INSERT INTO "users" (username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department) ' +
+			'SELECT username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department FROM the_unconfirmed_user ) ' +
+		' SELECT EXISTS (SELECT * FROM the_unconfirmed_user)'
+		, [ confirmation_code ] )
+		.then (( { rows: [ { exists } ] } ) => exists ) }
+	/*
+	return pool .query ('SELECT username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department FROM "unconfirmed_users" WHERE "confirmation_code" = $1' , [ confirmation_code ])
+	.then (({ rows: [ { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } ] }) => 
+		create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department }) )
+	.then (_ =>
+		pool .query ('DELETE FROM "unconfirmed_users" WHERE "confirmation_code" = $1' , [ confirmation_code ]) )
+	.then (_ => undefined) }
+	*/
 
-//find the user's team 	
+
+var invite_email = team => email => {
+	id = team .id
+	return pool .query ('SELECT 1 FROM "teams" WHERE id = $1' , [ id ])
+	.then (({ rows: [ { invited } ] }) => 
+		pool .query ('UPDATE "teams" SET "invited" = $1 WHERE id = $2' , [ [ ... invited, email ], id ]) )
+	.then (_ => undefined) }
+
+
 var user_team_ = user => {
-	var username = user .username
-	return R .find (team => R .includes (username) (team .members)) (R .values (teams)) }
-var find_user = ({ username, password }) =>
-	R .find (({ _username, _password }) => R .and (equals (username) (_username)) (equals (password) (_password))
-	) (
-	R .values (users) )
-var find_stats = user => 
-	user .stats
+	var id = user .id
+	return pool .query ('SELECT 1 FROM "teams" WHERE $1 = ANY("members")' , [ id ]) }
+
+
+var find_user = ({ username, password }) => {
+	return pool .query ('SELECT 1 FROM "users" WHERE "username" = $1 AND "password" = $2' , [ username, password ]) }
+
+
+var find_stats = user => {
+	return pool .query ('SELECT * FROM "stats" WHERE "user" = $1' , [ user ]) }
 
 
 
@@ -117,8 +152,7 @@ module .exports = server_ (routes => routes
 		go
 		.then (_ => {
 			var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = ctx .request .body
-			var confirmation_code = uuid ()
-			;create_unconfirmed_user ({ confirmation_code, username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
+			;create_unconfirmed_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
 			//send email
 			} )
 		.then (_client => ({ ok: true }))
