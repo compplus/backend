@@ -22,6 +22,7 @@ var teams = {}
 
 
 var create_team = user =>  {
+
 	var leader = user .id
 	var members = [ user .id ]
 	var { name } = user. username
@@ -29,6 +30,7 @@ var create_team = user =>  {
 	var id = uuid ()
 	return pool .query ('INSERT INTO "teams" ("id", "name", "leader", "members", "invited")' + 'VALUES ( $1, $2, $3, $4, $5)', [ id, name, leader, members, invited ])
 	.then (_ => undefined) }
+
 
 
 var create_unconfirmed_user = unconfirmed_user => {
@@ -43,6 +45,7 @@ var create_unconfirmed_user = unconfirmed_user => {
 var create_user = user => {
 	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = user
 	var id = uuid ()
+
 	return pool .query ('INSERT INTO "users" ("username", "role", "email", "password", "first_name", "last_name", "gender", "age", "height", "weight", "faculty", "department", "id")'
 	+ 'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)'
 	, [ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department, id ])
@@ -85,6 +88,23 @@ var invite_email = team => email => {
 		pool .query ('UPDATE "teams" SET "invited" = $1 WHERE id = $2' , [ [ ... invited, email ], id ]) )
 	.then (_ => undefined) }
 
+// function to calculate the total step of the team
+// var calc_total_step = teamID => {
+// 	var totalStep = 0
+// 	teams[teamID].members .forEach(function(userID){
+// 		totalStep+=users[userID] .stats .steps
+
+//Kist list of users from team
+var kick_user = user => ID_List => {
+	id = user .id
+	return pool .query ('SELECT 1 FROM "teams" WHERE $1 = ANY("members")' , [ id ])
+	.then (({ rows: [ { members } ] }) => 
+		//remove the user id from the list of member's id
+		members.splice( members.indexOf(id), 1 ),
+		//update specific row of teams with the updated list of members
+		pool .query ('UPDATE "teams" SET "members" = $1 WHERE $2 = ANY("members")' , [ members , id ]) )
+	.then (_ => undefined) }
+			
 
 var user_team_ = user => {
 	var id = user .id
@@ -97,6 +117,16 @@ var find_user = ({ username, password }) => {
 
 var find_stats = user => {
 	return pool .query ('SELECT * FROM "stats" WHERE "user" = $1' , [ user ]) }
+
+
+//find the team's stats
+var find_team = team => {
+	return pool .query ('SELECT "members", "invited", "totalStep" FROM "teams" WHERE id = $1' , [ team .id ]) }
+
+
+//find the user's ID from username
+var find_id = username => {
+	return pool .query ('SELECT "id" FROM "users" WHERE "username" = $1' , [ username ]) }
 
 
 
@@ -249,15 +279,42 @@ module .exports = server_ (routes => routes
 	.post ('/accept', impure ((ctx, next) =>
 		go
 		.then (_ => {
-			var { client, teamleader } = ctx .request .body
+			var { client, ID } = ctx .request .body
 			var user = client_user_ (client)
 			//delete from original team
 			if (user_team_ (user)) {
-				;user_team_ (user) .members = R .without (user .username, user_team_ (user). members) }
+				;kick_user (user)(user .id) }
 			//add to new team
-			user_team_ (teamleader) .members = [ ... user_team_ (teamleader) .members, user .id ]
+			teams[ID] .members = [ ... teams[ID] .members, user .id ]
 			//delete from invited list
-			user_team_ (user) .invited = R .without (user .email, user_team_ (user) .invited)
+			teams[ID] .invited = R .without (user .email, teams[ID] .invited)
+			return client } )
+		.then (_client => ({ ok: true, client: _client }))
+		.catch (expect_ok)
+		.then (respond (ctx)) ) )
+	.get ('/team', impure ((ctx, next) =>
+		go
+		.then (_ => {
+			var { client } = ctx .request .body
+			var user = client_user_ (client)
+			return find_team (user_team_ (user)) } )
+		.then (_stats => ({ ok: (_stats) (undefined), teamStats: _stats }))
+		.catch (expect_ok)
+		.then (respond (ctx)) ) )
+	//TODO
+// 	.post ('/team', impure ((ctx,next) =>
+// 		go
+	//kick members from a team. Only leader can do it.	
+	.post ('/kick', impure ((ctx, next) =>
+		go
+		.then (_ => {
+			var { client, ID_List } = ctx .request .body
+			var user = client_user_ (client)
+			//If the client is the leader
+			if ( user_team_ (user) .leader == user .ID ){
+				//delete list of IDs from team
+				if (user_team_ (user)) {
+					;kick_user (user)(ID_List)}}
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
