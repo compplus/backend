@@ -275,7 +275,6 @@ module .exports = server_ (routes => routes
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
-	//TODO: change to use team ids
 	.post ('/accept', impure ((ctx, next) =>
 		go
 		.then (_ => {
@@ -301,9 +300,18 @@ module .exports = server_ (routes => routes
 		.then (_stats => ({ ok: (_stats) (undefined), teamStats: _stats }))
 		.catch (expect_ok)
 		.then (respond (ctx)) ) )
-	//TODO
-// 	.post ('/team', impure ((ctx,next) =>
-// 		go
+	.post ('/team', impure ((ctx,next) =>
+ 		go
+		.then (_ => {
+			var { client, new_leader, new_team_name } = ctx .request .body
+			var user = client_user_ (client)
+			//only leader can change
+			if ( user_team_ (user) .leader == user .ID ){
+				user_team_ (user) = { ...user_team_(user), leader: new_leader, name: new_team_name }
+				}} )
+		.then (_ => ({ ok: true }))
+		.catch (expect_ok)
+		.then (respond) ) )	  
 	//kick members from a team. Only leader can do it.	
 	.post ('/kick', impure ((ctx, next) =>
 		go
