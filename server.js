@@ -265,12 +265,17 @@ module .exports = server_ (routes => routes
 		.then (_ => {
 			var { client, emails } = ctx .request .body
 			var user = client_user_ (client)
-			//make a new team if there is no existing team for the user
-			if (equals (user_team_ (user)) (undefined)) {
-				;create_team (user) }
-			var team = user_team_ (user)
-			//update invited list
-			;R .forEach (invite_email (team)) (emails)
+			//only can invite if the member is less than 5
+			if (user_team_ (user) .members .length < 5){
+				//make a new team if there is no existing team for the user
+				if (equals (user_team_ (user)) (undefined)) {
+					;create_team (user) }
+				var team = user_team_ (user)
+				//update invited list
+				;R .forEach (invite_email (team)) (emails)
+			} else {
+				//print error message (already full)
+			}
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
@@ -280,13 +285,18 @@ module .exports = server_ (routes => routes
 		.then (_ => {
 			var { client, ID } = ctx .request .body
 			var user = client_user_ (client)
-			//delete from original team
-			if (user_team_ (user)) {
-				;kick_user (user)(user .id) }
-			//add to new team
-			teams[ID] .members = [ ... teams[ID] .members, user .id ]
-			//delete from invited list
-			teams[ID] .invited = R .without (user .email, teams[ID] .invited)
+			//only can accept if the new team has spot(less than 5 members)
+			if ( teams[ID] .members .length < 5 ){
+				//delete from original team
+				if (user_team_ (user)) {
+					;kick_user (user)(user .id) }
+				//add to new team
+				teams[ID] .members = [ ... teams[ID] .members, user .id ]
+				//delete from invited list
+				teams[ID] .invited = R .without (user .email, teams[ID] .invited)
+			} else {
+				//print error message (already full)
+			}
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
 		.catch (expect_ok)
