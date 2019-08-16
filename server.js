@@ -8,6 +8,7 @@ var debug = true
 
 
 var pool = new Pool
+var nodemailer = require('nodemailer');
 
 
 
@@ -60,6 +61,44 @@ var create_stat = user => stat => {
 
 
 var confirm_user = confirmation_code => {
+
+	//need to setup the email of the recipient and url for confirmation
+	export const sendEmail = async (email, url) => {
+		const transporter = nodemailer.createTransport({
+			host: "smtp.ethereal.email",
+			port: 587,
+			auth: {
+				user: process.env.NODEMAILER_EMAIL,
+				pass: process.env.NODEMAILER_PASSWORD
+			}
+		});
+	
+		const message = {
+			from: "compplus@connect.hku.hk>",
+			to: `<${email}>`,
+			subject: "Compplus - User Confirmation Email",
+			html: `<!DOCTYPE html>
+							<html>
+								<head>
+								</head>
+								<body>
+									<div style="min-width: 300px;">
+										<p>Dear {first name},<br><br></p>
+										<p>You have successfully registered an account with Compplus. Please click on <a href = "<${url}>">this link</a> to verify your account.<br><br></p>
+										<small>Please ignore this email if you did not register an account with Compplus.</small>
+									</div>
+								</body>
+							</html>`
+		};
+	
+		transporter.sendMail(message, (err, info) => {
+			if (err) {
+				console.log("Error occurred. " + err.message);
+			}
+			console.log("Message sent: %s", info.messageId);
+		});
+	};
+
 	return pool .query (
 		'WITH the_unconfirmed_user AS ( ' + 
 			'DELETE FROM "unconfirmed_users" unconfirmed_user ' +
@@ -82,6 +121,44 @@ var confirm_user = confirmation_code => {
 
 
 var invite_email = team => email => {
+
+	//need to setup the url for confirmation
+	export const sendEmail = async (email, url) => {
+		const transporter = nodemailer.createTransport({
+			host: "smtp.ethereal.email",
+			port: 587,
+			auth: {
+				user: process.env.NODEMAILER_EMAIL,
+				pass: process.env.NODEMAILER_PASSWORD
+			}
+		});
+	
+		const message = {
+			from: "compplus@connect.hku.hk>",
+			to: `<${email}>`,
+			subject: "Compplus - Team Invitation",
+			html: `<!DOCTYPE html>
+							<html>
+								<head>
+								</head>
+								<body>
+									<div style="min-width: 300px;">
+										<p>Dear {first name},<br><br></p>
+										<p>You have been invited to be part of {team name}. Please click on <a href = "<${url}>">this link</a> to accept the invitation.<br><br></p>
+										<small>Please ignore this email if you did not register an account with Compplus.</small>
+									</div>
+								</body>
+							</html>`
+		};
+	
+		transporter.sendMail(message, (err, info) => {
+			if (err) {
+				console.log("Error occurred. " + err.message);
+			}
+			console.log("Message sent: %s", info.messageId);
+		});
+	};
+
 	id = team .id
 	return pool .query ('SELECT 1 FROM "teams" WHERE id = $1' , [ id ])
 	.then (({ rows: [ { invited } ] }) => 
@@ -97,22 +174,22 @@ var invite_email = team => email => {
 //Kist list of users from team
 var kick_user = user => ID_List => {
 	id = user .id
-	return pool .query ('SELECT 1 FROM "teams" WHERE $1 = ANY("members")' , [ id ])
+	return pool .query ('SELECT * FROM "teams" WHERE $1 = ANY("members")' , [ id ])
 	.then (({ rows: [ { members } ] }) => 
 		//remove the user id from the list of member's id
 		members.splice( members.indexOf(id), 1 ),
 		//update specific row of teams with the updated list of members
-		pool .query ('UPDATE "teams" SET "members" = $1 WHERE $2 = ANY("members")' , [ members , id ]) )
+		pool .query ('UPDATE "teams" SET members = $1 WHERE $2 = ANY("members")' , [ members , id ]) )
 	.then (_ => undefined) }
 			
 
 var user_team_ = user => {
 	var id = user .id
-	return pool .query ('SELECT 1 FROM "teams" WHERE $1 = ANY("members")' , [ id ]) }
+	return pool .query ('SELECT * FROM "teams" WHERE $1 = ANY("members")' , [ id ]) }
 
 
 var find_user = ({ username, password }) => {
-	return pool .query ('SELECT 1 FROM "users" WHERE "username" = $1 AND "password" = $2' , [ username, password ]) }
+	return pool .query ('SELECT * FROM "users" WHERE "username" = $1 AND "password" = $2' , [ username, password ]) }
 
 
 var find_stats = user => {
@@ -121,12 +198,12 @@ var find_stats = user => {
 
 //find the team's stats
 var find_team = team => {
-	return pool .query ('SELECT "members", "invited", "totalStep" FROM "teams" WHERE id = $1' , [ team .id ]) }
+	return pool .query ('SELECT members, invited, totalStep FROM "teams" WHERE id = $1' , [ team .id ]) }
 
 
 //find the user's ID from username
 var find_id = username => {
-	return pool .query ('SELECT "id" FROM "users" WHERE "username" = $1' , [ username ]) }
+	return pool .query ('SELECT id FROM "users" WHERE "username" = $1' , [ username ]) }
 
 
 
