@@ -27,7 +27,8 @@ var create_team = user =>  {
 	var leader = user .id
 	var members = [ user .id ]
 	var { name } = user. username
-	var invited = []
+	//var invited = []
+	var invited = {} //object with email as key name and timestamp as key value
 	var id = uuid ()
 	return pool .query ('INSERT INTO "teams" ("id", "name", "leader", "members", "invited")' + 'VALUES ( $1, $2, $3, $4, $5)', [ id, name, leader, members, invited ])
 	.then (_ => undefined) }
@@ -160,6 +161,8 @@ var invite_email = team => email => {
 	};
 
 	id = team .id
+	//TODO: New code is as below
+	//teams[id] .invited= { ... teams[id] .invited, [email]:Date.now()} //Adding a new key with email as key name and current time as value
 	return pool .query ('SELECT 1 FROM "teams" WHERE id = $1' , [ id ])
 	.then (({ rows: [ { invited } ] }) => 
 		pool .query ('UPDATE "teams" SET "invited" = $1 WHERE id = $2' , [ [ ... invited, email ], id ]) )
@@ -362,17 +365,22 @@ module .exports = server_ (routes => routes
 		.then (_ => {
 			var { client, ID } = ctx .request .body
 			var user = client_user_ (client)
-			//only can accept if the new team has spot(less than 5 members)
-			if ( teams[ID] .members .length < 5 ){
-				//delete from original team
-				if (user_team_ (user)) {
-					;kick_user (user)(user .id) }
-				//add to new team
-				teams[ID] .members = [ ... teams[ID] .members, user .id ]
-				//delete from invited list
-				teams[ID] .invited = R .without (user .email, teams[ID] .invited)
+			//only accept if the invitation was sent within 48 hours
+			if ( Date.now() - teams[ID] .invited[user.email] < 1.728e+8 ) {
+				//only can accept if the new team has spot(less than 5 members)
+				if ( teams[ID] .members .length < 5 ){
+					//delete from original team
+					if (user_team_ (user)) {
+						;kick_user (user)(user .id) }
+					//add to new team
+					teams[ID] .members = [ ... teams[ID] .members, user .id ]
+					//delete from invited list
+					teams[ID] .invited = R .without (user .email, teams[ID] .invited)
+				} else {
+					//print error message (already full)
+				}
 			} else {
-				//print error message (already full)
+				//print error message ( invitation expired )
 			}
 			return client } )
 		.then (_client => ({ ok: true, client: _client }))
