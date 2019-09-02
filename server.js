@@ -68,7 +68,7 @@ server_ (routes => routes
 			if (not (client_id_ (client))) {
 				;panic ('invalid session') } } )
 		.then (_ => 
-			insert_steps (client_id_ (client)) (step_stats) ) // TODO: merge by max
+			merge_stat (client_id_ (client)) (step_stats) ) // TODO: merge by max
 		) (
 		ctx .request .body ) .then (response => {
 			;ctx .body = { response } } ) ) )
@@ -145,23 +145,12 @@ where
 	;step_stats [id] = step_stat ([], [], []) }
 
 
-, insert_steps = id => step_stats => {
-	;T (step_stats) (pin (L .elems, as_in (stat), ({ timestamp, step_stats, distance, calories }) => {
-		var _hour = hour_ (timestamp)
-		var _day = day_ (timestamp)
-		var _month = month_ (timestamp)
-		// TODO: refactor
-		;step_stats [id] = pinpoint
-		( L .modify ([ as (step_stats) .by_hours, _hour, L .valueOr (stat (0, 0, 0)), as (stat) .steps ]) (R .add (steps))
-		, L .modify ([ as (step_stats) .by_days, _day, L .valueOr (stat (0, 0, 0)), as (stat) .steps ]) (R .add (steps))
-		, L .modify ([ as (step_stats) .by_months, _month, L .valueOr (stat (0, 0, 0)), as (stat) .steps ]) (R .add (steps))
-		, L .modify ([ as (step_stats) .by_hours, _hour, L .valueOr (stat (0, 0, 0)), as (stat) .distance ]) (R .add (distance))
-		, L .modify ([ as (step_stats) .by_days, _day, L .valueOr (stat (0, 0, 0)), as (stat) .distance ]) (R .add (distance))
-		, L .modify ([ as (step_stats) .by_months, _month, L .valueOr (stat (0, 0, 0)), as (stat) .distance ]) (R .add (distance))
-		, L .modify ([ as (step_stats) .by_hours, _hour, L .valueOr (stat (0, 0, 0)), as (stat) .calories ]) (R .add (calories))
-		, L .modify ([ as (step_stats) .by_days, _day, L .valueOr (stat (0, 0, 0)), as (stat) .calories ]) (R .add (calories))
-		, L .modify ([ as (step_stats) .by_months, _month, L .valueOr (stat (0, 0, 0)), as (stat) .calories ]) (R .add (calories))
-		) (steps [id] ) } ) ) }
+, merge_stat = _id => _step_stat => {
+	;step_stats [_id] = pinpoint
+		( L .modify (as (step_stat) .by_hours, as_in (step_sample)) (R .mergeWith (R .max) (pinpoint (as (step_stat) .by_hours, as_in (step_sample)) (_step_stat)))
+		, L .modify (as (step_stat) .by_days, as_in (step_sample)) (R .mergeWith (R .max) (pinpoint (as (step_stat) .by_days, as_in (step_sample)) (_step_stat)))
+		, L .modify (as (step_stat) .by_months, as_in (step_sample)) (R .mergeWith (R .max) (pinpoint (as (step_stat) .by_months, as_in (step_sample)) (_step_stat)))
+		) (id_steps_ (_id) ) }
 , update_user = id => _user => {
 	;users [id] = L .modify (L .values) ((val, key) => _user [key] || val) (users [id]) }
 , invite_ = id => _email => {
