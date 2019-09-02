@@ -1,85 +1,246 @@
-var R = require ('ramda')
+with (require ('camarche'))
+with (require ('./types'))
+so ((_=_=>
+satisfy (module
+) (
+server_ (routes => routes
+	.post ('/signup', impure ((ctx, next) =>
+		pinpoint (({ email, password, user }) =>
+		go
+		.then (_ =>
+			user_by_email_ ({ email }) )
+		.then (panic_on ([ [ _x => not (equals (undefined) (_x)), 'User with this email already exists!' ] ]))
+		.then (_ => 
+			create_user ({ email, password, user }) )
+		.then (id => 
+			create_client (id) )
+		) (
+		ctx .request .body ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.post ('/login', impure ((ctx, next) =>
+		pinpoint (({ email, password }) =>
+		go
+		.then (_ =>
+			user_by_credentials_ ({ email, password }) )
+		.then (panic_on ([ [ equals (undefined), 'Email and password does not match!' ] ]))
+		.then (_user => 
+			create_client (user_id_ (_user)) )
+		) (
+		ctx .request .body ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.get ('/client/user', impure ((ctx, next) =>
+		pinpoint (({ client }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => 
+			id_user_ (client_id_ (client)) )
+		) (
+		ctx .query ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.post ('/client/user', impure ((ctx, next) => 
+		pinpoint (({ client, user }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => {
+			;update_user (client_id_ (client)) (user) } )
+		) (
+		ctx .request .body ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.get ('/client/step-stat', impure ((ctx, next) =>
+		pinpoint (({ client }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => 
+			id_steps_ (client_id_ (client)) )
+		) (
+		ctx .query ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.post ('/client/step-stat', impure ((ctx, next) => 
+		pinpoint (({ client, step_stat }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => 
+			insert_steps (client_id_ (client)) (step_stats) ) // TODO: merge by max
+		) (
+		ctx .request .body ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.get ('/client/team', impure ((ctx, next) =>
+		pinpoint (({ client }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => 
+			team_by_user_ (client_user_ (client)) )
+		) (
+		ctx .query ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.get ('/client/invite', impure ((ctx, next) => 
+		pinpoint (({ client }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => {
+			;id_invites_ (client_id_ (client)) } )
+		) (
+		ctx .query ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.post ('/client/invite', impure ((ctx, next) => 
+		pinpoint (({ client, email }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => {
+			if (not (user_by_email_ (email))) {
+				;panic ('User with this email does not exist!') } } )
+		.then (_ => {
+			if (team_by_user_ (user_by_email_ (email))) {
+				;panic ('User with this email already has a team!') } } )
+		.then (_ => {
+			;invite_ (client_id_ (client)) (email) } )
+		) (
+		ctx .request .body ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.post ('/client/accept', impure ((ctx, next) => 
+		pinpoint (({ client, email }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => {
+			if (not (user_by_email_ (email))) {
+				;panic ('User with this email does not exist!') } } )
+		.then (_ => {
+			if (not (R .contains (user_id_ (user_by_email_ (email))) (id_invites_ (client_id_ (client))))) {
+				;panic ('User did not invite you to his team!') } } )
+		.then (_ => {
+			;accept_ (client_id_ (client)) (email) } )
+		) (
+		ctx .request .body ) .then (response => {
+			;ctx .body = { response } } ) ) )
+	) ),
 
-var debug = true
+where
 
 
-
-var go = Promise .resolve ()
-var suppose = fn_form => fn_form ()
-var equals = x => y => R .equals (x) (y)
-var impure = dirty_f => x => {;dirty_f (x)}
-
-
-
-
-
-
-
+, create_user = ({ email, password, user: _user }) => {
+	var { role, first_name, last_name, gender, age, height, weight, faculty, department } = _user
+	var id = uuid ()
+	;users [id] =
+		user
+		( id, faculty, department, category, gender, first_name, last_name, age, height, weight )
+	;credentials [id] = { email, password }
+	return id }
+, create_steps = id => {
+	;step_stats [id] = step_stat ([], [], []) }
 
 
+, insert_steps = id => step_stats => {
+	;T (step_stats) (pin (L .elems, as_in (stat), ({ timestamp, step_stats, distance, calories }) => {
+		var _hour = hour_ (timestamp)
+		var _day = day_ (timestamp)
+		var _month = month_ (timestamp)
+		// TODO: refactor
+		;step_stats [id] = pinpoint
+		( L .modify ([ as (step_stats) .by_hours, _hour, L .valueOr (stat (0, 0, 0)), as (stat) .steps ]) (R .add (steps))
+		, L .modify ([ as (step_stats) .by_days, _day, L .valueOr (stat (0, 0, 0)), as (stat) .steps ]) (R .add (steps))
+		, L .modify ([ as (step_stats) .by_months, _month, L .valueOr (stat (0, 0, 0)), as (stat) .steps ]) (R .add (steps))
+		, L .modify ([ as (step_stats) .by_hours, _hour, L .valueOr (stat (0, 0, 0)), as (stat) .distance ]) (R .add (distance))
+		, L .modify ([ as (step_stats) .by_days, _day, L .valueOr (stat (0, 0, 0)), as (stat) .distance ]) (R .add (distance))
+		, L .modify ([ as (step_stats) .by_months, _month, L .valueOr (stat (0, 0, 0)), as (stat) .distance ]) (R .add (distance))
+		, L .modify ([ as (step_stats) .by_hours, _hour, L .valueOr (stat (0, 0, 0)), as (stat) .calories ]) (R .add (calories))
+		, L .modify ([ as (step_stats) .by_days, _day, L .valueOr (stat (0, 0, 0)), as (stat) .calories ]) (R .add (calories))
+		, L .modify ([ as (step_stats) .by_months, _month, L .valueOr (stat (0, 0, 0)), as (stat) .calories ]) (R .add (calories))
+		) (steps [id] ) } ) ) }
+, update_user = id => _user => {
+	;users [id] = L .modify (L .values) ((val, key) => _user [key] || val) (users [id]) }
+, invite_ = id => _email => {
+	var invited_id = user_by_email_ (_email)
+	;invites [invited_id] = pinpoint (L .valueOr ([]), ([ ... invites ]) => [ ... invites, id ]) (invites [invited_id]) }
+, accept_ = id => _email => {
+	var inviter_id = user_by_email_ (_email)
+	;invites [id] = []
+	;teams [inviter_id] = [ ... (teams [inviter_id] || [ inviter_id ]), id ] }
 
-var users = []
-var trophies = {}
 
-var create_user = user => {
-	var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = user
-	user =
-	{ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department
-	, stats: [] }
-	;users = [ ... users, user ] }
-var create_stat = user => stat => {
-	var { timestamp, distance, calories, steps } = stat
-	stat = { timestamp, distance, calories, steps }
-	;user .stats = [ ... user .stats, stat ] }
+, hour_ = _date => + (new Date (_date)) .setMinutes (0, 0, 0)
+, day_ = _date => + (new Date (_date)) .setHours (0, 0, 0, 0)
+, month_ = _date => + (new Date ((new Date (_date)) .setDate (1))) .setHours (0, 0, 0, 0)
 
 
-var find_user = ({ username, password }) =>
-	R .find (({ _username, _password }) => R .and (equals (username) (_username)) (equals (password) (_password))
+, user_by_credentials_ = ({ email, password }) =>
+	pinpoint (
+	pinpoint
+	( L .entries, L .when (([ _, _credentials ]) => equals (_credentials) ({ email, password }))
+	, ([ _id, _ ]) => _id
+	) (credentials )
+	|| L .zero
+	) (users )
+, user_by_email_ = ({ email }) =>
+	pinpoint (
+	pinpoint
+	( L .entries, L .when (([ _, { email: _email } ]) => equals (_email) (email))
+	, ([ _id, _ ]) => _id
+	) (credentials )
+	|| L .zero
+	) (users )
+, team_by_user_ = _user =>
+	pinpoint
+	( user_id_ (_user) || K ()
+	, L .valueOr (
+		team (_user, [], []) )
 	) (
-	users )
-var find_stats = user => 
-	user .stats
+	teams )
+
+, id_user_ = id => users [id]
+, id_steps_ = id => step_stats [id]
+
+, id_invites_ = id =>
+	pinpoints
+	( L .values
+	, L .when (pinpoint
+		( as (team) .invitations
+		, L .any (pinpoint (as (user) .id, equals (id))) (L .elems) ) )
+	, as (team) .captain
+	, as (user) .id
+	) (team )
+
+, user_id_ = pinpoint (as (user) .id)
 
 
-var clients = {}
-
-var create_client = ({ username, password }) => {
-	var _user = find_user ({ username, password })
-	if (_user) {
-		var _client = uuid ()
-		while (clients [_client]) {;_client = uuid ()}
-		;clients [_client] = { user: _user, ok: false }
-		return _client } }
-var client_user = client => clients [client]
-
-var uuid = _ =>
-	'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx' .replace (/[xy]/g, c => 
-	suppose (
-	( r = Math.random() * 16 | 0
-	) =>
-	(c == 'x' ? r : (r & 0x3 | 0x8)) .toString (16) ) )
+, create_client = _id => {
+	var _client = uuid ()
+	while (clients [_client]) {;_client = uuid ()}
+	;clients [_client] = { id: _id }
+	return _client }
+, client_id_ = client => clients [client] .id
+, client_user_ = client => id_user_ (client_id_ (client))
 
 
 
-var expect_ok = _error => {
-	;console .error (_error)
-  
-	return { error: 'An unexpected error occured' } }
-var respond = ctx => _x => {;ctx .body = _x}
 
-var server_ = routes =>
+, server_ = routes =>
 	require ('koa-qs') (new (require ('koa')))
 		.use (require ('koa-compress') ())
 		.use (require ('koa-cors') ())
 		.use (impure ((ctx, next) =>
-			next ()
+			go .then (next)
 			.catch ((err) => {
 				;console .error (err)
 				
 				;ctx .type = 'application/json'
 				;ctx .status = /*err .code || */500
-				//;; ctx .message = err .message || 'Internal Server Error'
-				;ctx .body = { error : err .message }
+				;ctx .body = { error: err .reason || err .message }
 				if (debug) {
 					;ctx .body .stack = err .stack } }) ))
 		.use (require ('koa-morgan') ('combined'))
@@ -88,42 +249,43 @@ var server_ = routes =>
 		.use (routes (require ('koa-router') ()) .routes ())
 
 
-module .exports = server_ (routes => routes
-	.post ('/any/signup', impure ((ctx, next) =>
-		go
-		.then (_ => {
-			var { username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department } = ctx .request .body
-			
-			;create_user ({ username, role, email, password, first_name, last_name, gender, age, height, weight, faculty, department })
-			;return create_client ({ username, password }) })
-		.then (_client => ({ ok : true, client : _client }))
-		.catch (expect_ok)
-		.then (respond (ctx)) ) )
-	.post ('/any/login', impure ((ctx, next) =>
-		go
-		.then (_ => {
-			var { username, password } = ctx .request .body
-			
-			;return create_client ({ username, password }) })
-		.then (_client => ({ ok : _client === undefined, client : _client }))
-		.catch (expect_ok)
-		.then (respond (ctx)) ) )
-	.get ('/stats', impure ((ctx, next) =>
-		go
-		.then (_ => {
-			var { client } = ctx .query
 
-			return find_stats (client_user (client)) })
-		.then (_stats => ({ ok : _stats === undefined, stats : _stats }))
-		.catch (expect_ok)
-		.then (respond (ctx)) ) )
-	.post ('/stats', impure ((ctx, next) => 
-		go
-		.then (_ => {
-			var { client, timestamp, distance, calories, steps } = ctx .query
+, load = name => {
+	try {
+		return require ('./' + name + '.json') }
+	catch (_) {
+		return {} } }
+, save = name => data => {
+	;require ('fs') .writeFileSync ('./' + name + '.json', JSON .stringify (data)) }
 
-			;return create_stat (client_user (client)) ({ timestamp, distance, calories, steps }) })
-		.then (_ => ({ ok : true }))
-		.catch (expect_ok)
-		.then (respond (ctx)) ) )
-	)
+
+
+, uuid = _ =>
+	'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx' .replace (/[xy]/g, c => 
+	suppose (
+	( r = Math.random() * 16 | 0
+	) =>
+	(c == 'x' ? r : (r & 0x3 | 0x8)) .toString (16) ) )
+
+
+
+, debug = true
+
+, clients = {}
+, users = load ('users')
+, credentials = load ('credentials')
+, teams = load ('teams')
+, step_stats = load ('step-stats')
+, trophies = load ('trophies')
+
+, $__persistence = jinx (_ => {
+	;setInterval (_ => {
+		;save ('users') (users)
+		;save ('credentials') (credentials)
+		;save ('teams') (teams)
+		;save ('step-stats') (step_stats)
+		;save ('trophies') (trophies) }
+	, 5 * 60 * 1000)
+	} )
+
+	)=>_)
