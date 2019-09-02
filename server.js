@@ -203,7 +203,13 @@ where
 	teams )
 
 , id_user_ = id => users [id]
-, id_steps_ = id => step_stats [id]
+, id_steps_ = id => 
+	pinpoint
+	( id
+	, L .valueOr (
+		step_stat ([], [], []) )
+	) (
+	step_stats )
 
 , id_invites_ = id =>
 	pinpoints
