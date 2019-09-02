@@ -218,8 +218,8 @@ where
 	while (clients [_client]) {;_client = uuid ()}
 	;clients [_client] = { id: _id }
 	return _client }
-, client_id_ = client => clients [client] .id
-, client_user_ = client => id_user_ (client_id_ (client))
+, client_id_ = _client => pinpoint (_client, 'id') (clients)
+, client_user_ = _client => id_user_ (client_id_ (_client))
 
 
 
