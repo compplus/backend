@@ -187,7 +187,7 @@ where
 	pinpoint
 	( user_id_ (_user) || K ()
 	, L .valueOr (
-		team (_user, [], []) )
+		team (user_id_ (_user), _user, [], []) )
 	) (
 	teams )
 
