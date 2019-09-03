@@ -2,14 +2,14 @@ var { $, data } = require ('camarche/adt')
 
 var untyped = data ()
 
-var bool = untyped
-var str = untyped
-var nat = untyped
-var number = untyped
-var id = untyped
+var bool = data ()
+var str = data ()
+var nat = data ()
+var number = data ()
+var id = data ()
 var unbound = a => a
-var v = $ ((... a) => untyped)
-var list = $ (a => untyped)
+var v = $ ((... a) => data ())
+var list = $ (a => data ())
 var map = $ (a => (... b) => list (v (a, ... b)))
 var maybe = $ (a => data (
 	( nothing
@@ -21,20 +21,22 @@ var mention = $ (a => data (
 	( mention_ = { _ :- id }
 	, subject = { subject :- a } ) => mention (a) ) )
 
-var password = untyped
+var password = data ()
+
+var coord = data ()
 
 var client = id
-var month = untyped
-var day_of_month = untyped
-var hour_of_day = untyped
-var email = untyped
-var faculty = untyped
-var department = untyped
-var first_name = untyped
-var last_name = untyped
-var age = untyped
-var height = untyped
-var weight = untyped
+var month = data ()
+var day_of_month = data ()
+var hour_of_day = data ()
+var email = data ()
+var faculty = data ()
+var department = data ()
+var first_name = data ()
+var last_name = data ()
+var age = data ()
+var height = data ()
+var weight = data ()
 var category = data (
 	( staff, student, alumni, other
 	) => category )
@@ -77,7 +79,7 @@ var team = data (
 	{ _ :- id
 	, captain :- user
 	, members :- list (user)
-	, invitations :- list (user) }
+	, invitations :- list (email) }
 	) => team )
 
 var forgot_password_view = data (
@@ -107,7 +109,7 @@ var main_view = data (
 var contest_view = data (
 	( contest
 	, individual_rank
-	, team_formation = { _ :- team, pending_invitations :- list (email) }
+	, team_formation
 	, team_rank ) => settings_view )
 var in_view = data (
 	( main = { _ :- main_view }
@@ -115,7 +117,7 @@ var in_view = data (
 
 var in_features = data (
 	( _ =
-	{ _ :- client, _ :- user, _ :- step_stat, _ :- team }
+	{ _ :- client, _ :- email, _ :- user, _ :- step_stat, _ :- team }
 	) => in_features )
 
 
@@ -141,7 +143,9 @@ var dimensions = data (
 var state = data (
 	( _ =
 	{ history :- list (nav)
-	, _ :- dimensions }
+	, _ :- dimensions
+	, _ :- coord
+	, local :- untyped }
 	) => state )
 
 
@@ -158,7 +162,7 @@ module .exports =
 , client, faculty, department, category, gender, first_name, last_name, age, height, weight
 
 , time_unit, step_sample, step_stat
-, orientation, dimensions
+, orientation, dimensions, coord
 
 , user, team
 

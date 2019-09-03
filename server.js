@@ -50,6 +50,17 @@ server_ (routes => routes
 		) (
 		ctx .request .body ) .then (response => {
 			;ctx .body = { response } } ) ) )
+	.get ('/client/email', impure ((ctx, next) =>
+		pinpoint (({ client, id }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => 
+			id_email_ (id) )
+		) (
+		ctx .query ) .then (response => {
+			;ctx .body = { response } } ) ) )
 	.get ('/client/step-stat', impure ((ctx, next) =>
 		pinpoint (({ client }) =>
 		go
@@ -68,7 +79,7 @@ server_ (routes => routes
 			if (not (client_id_ (client))) {
 				;panic ('invalid session') } } )
 		.then (_ => 
-			merge_stat (client_id_ (client)) (step_stats) ) // TODO: merge by max
+			merge_stat (client_id_ (client)) (step_stat) )
 		) (
 		ctx .request .body ) .then (response => {
 			;ctx .body = { response } } ) ) )
@@ -100,12 +111,12 @@ server_ (routes => routes
 		.then (_ => {
 			if (not (client_id_ (client))) {
 				;panic ('invalid session') } } )
-		.then (_ => {
-			if (not (user_by_email_ (email))) {
-				;panic ('User with this email does not exist!') } } )
-		.then (_ => {
-			if (team_by_user_ (user_by_email_ (email))) {
-				;panic ('User with this email already has a team!') } } )
+		//.then (_ => {
+		//	if (not (user_by_email_ (email))) {
+		//		;panic ('User with this email does not exist!') } } )
+		//.then (_ => {
+		//	if (invariant_on_ (pinpoint (team_by_user_, as (team) .captain)) (user_by_email_ (email))) {
+		//		;panic ('User with this email already has a team!') } } )
 		.then (_ => {
 			;invite_ (client_id_ (client)) (email) } )
 		) (
@@ -134,7 +145,7 @@ where
 
 
 , create_user = ({ email, password, user: _user }) => {
-	var { role, first_name, last_name, gender, age, height, weight, faculty, department } = _user
+	var { faculty, department, category, gender, first_name, last_name, age, height, weight } = _user
 	var id = uuid ()
 	;users [id] =
 		user
@@ -147,20 +158,19 @@ where
 
 , merge_stat = _id => _step_stat => {
 	;step_stats [_id] = pinpoint
-		( L .modify (as (step_stat) .by_hours, as_in (step_sample)) (R .mergeWith (R .max) (pinpoint (as (step_stat) .by_hours, as_in (step_sample)) (_step_stat)))
-		, L .modify (as (step_stat) .by_days, as_in (step_sample)) (R .mergeWith (R .max) (pinpoint (as (step_stat) .by_days, as_in (step_sample)) (_step_stat)))
-		, L .modify (as (step_stat) .by_months, as_in (step_sample)) (R .mergeWith (R .max) (pinpoint (as (step_stat) .by_months, as_in (step_sample)) (_step_stat)))
+		( L .modify ([ as (step_stat) .by_hours, un (L .keyed) ]) (_merge_step_sample (pinpoint (as (step_stat) .by_hours, un (L .keyed)) (_step_stat)))
+		, L .modify ([ as (step_stat) .by_days, un (L .keyed) ]) (_merge_step_sample (pinpoint (as (step_stat) .by_days, un (L .keyed)) (_step_stat)))
+		, L .modify ([ as (step_stat) .by_months, un (L .keyed) ]) (_merge_step_sample (pinpoint (as (step_stat) .by_months, un (L .keyed)) (_step_stat)))
 		) (id_steps_ (_id) ) }
 , update_user = id => _user => {
 	;users [id] = L .modify (L .values) ((val, key) => _user [key] || val) (users [id]) }
 , invite_ = id => _email => {
-	var invited_id = user_by_email_ (_email)
-	;invites [invited_id] = pinpoint (L .valueOr ([]), ([ ... invites ]) => [ ... invites, id ]) (invites [invited_id]) }
+	;teams [id] = L .modify (as (team) .invitations) (L .set (L .appendTo) (_email)) (team_by_user_ (id_user_ (id))) }
 , accept_ = id => _email => {
-	var inviter_id = user_by_email_ (_email)
-	;invites [id] = []
-	;teams [inviter_id] = [ ... (teams [inviter_id] || [ inviter_id ]), id ] }
+	;teams [id] = L .modify (as (team) .invitations) (R .without ([ id_email_ (id) ])) (team_by_user_ (id_user_ (id)))
+	;teams [id] = L .modify (as (team) .members) (R .append (id_user_ (id))) (team_by_user_ (id_user_ (id))) }
 
+, _merge_step_sample = R .mergeWith ((_sample_1, _sample_2) => pinpoint (un (as_in (step_sample))) (R .mergeWith (R .max) (pinpoint (as_in (step_sample)) (_sample_1)) (pinpoint (as_in (step_sample)) (_sample_2))))
 
 , hour_ = _date => + (new Date (_date)) .setMinutes (0, 0, 0)
 , day_ = _date => + (new Date (_date)) .setHours (0, 0, 0, 0)
@@ -209,6 +219,11 @@ where
 	, as (team) .captain
 	, as (user) .id
 	) (team )
+
+, id_email_ = id =>
+	pinpoint
+	( id, 'email'
+	) (credentials )
 
 , user_id_ = pinpoint (as (user) .id)
 
@@ -262,6 +277,8 @@ where
 	) =>
 	(c == 'x' ? r : (r & 0x3 | 0x8)) .toString (16) ) )
 
+
+, invariant_on_ = fn => x => equals (x) (fn (x))
 
 
 , debug = true
