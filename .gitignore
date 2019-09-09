@@ -1,1 +1,6 @@
 node_modules
+credentials.json
+users.json
+teams.json
+step-stats.json
+trophies.json
