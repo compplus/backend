@@ -149,7 +149,7 @@ suppose (
 
 , { user, team, credential, step_stat, trophy, category, gender, step_sample, time_unit } = require ('./types')
 
-, serialize_on_ = _types => Y (rec => by (pinpoint (match
+, serialize_on_ = _types => Y (rec => by (match
 	( ... R .map (([ type_name, _type ]) =>
 		case_ (as (_type)) (pinpoint
 			( L .set ('__type') (type_name)
@@ -157,9 +157,9 @@ suppose (
 		) (pinpoint (L .keyed) (_types) )
 	, case_ (L .subset (R .is (Array))) (L .modify (L .elems) (rec)) 
 	, case_ (L .subset (R .is (Object))) (L .modify (L .values) (rec)) 
-	, case_ (K) (I) ) ) ) )
+	, case_ (K) (I) ) ) ) 
 , __deserialize = _type => pinpoint (L .entries, ([ _variant_mark, _data ]) => pinpoint (un (as_in (_type [R .slice (0) (-1) (_variant_mark)]))) (_data))
-, deserialize_on_ = _types => Y (rec => by (pinpoint (match
+, deserialize_on_ = _types => Y (rec => by (match
 	( ... R .map (([ type_name, _type ]) =>
 		case_ ([ '__type', L .subset (equals (type_name)) ]) (pinpoint
 			( L .modify ([ L .values, L .values ]) (rec)
@@ -167,8 +167,9 @@ suppose (
 		) (pinpoint (L .keyed) (_types) )
 	, case_ (L .subset (R .is (Array))) (L .modify (L .elems) (rec)) 
 	, case_ (L .subset (R .is (Object))) (L .modify (L .values) (rec)) 
-	, case_ (K) (I) ) ) ) )
+	, case_ (K) (I) ) ) )
 
+// TODO: typecheck to prevent stack overflow
 
 , serialize = serialize_on_ ({ user, team, credential, step_stat, trophy, category, gender, step_sample, time_unit })
 , deserialize = deserialize_on_ ({ user, team, credential, step_stat, trophy, category, gender, step_sample, time_unit })

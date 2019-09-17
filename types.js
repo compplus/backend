@@ -41,6 +41,7 @@ var category = data (
 	( staff
 	, student
 	, alumni
+	, spouse_or_direct_dependents
 	, other
 	) => category )
 var gender = data (
@@ -101,8 +102,12 @@ var trophy = data (
 var forgot_password_view = data (
 	( _ = { _ :- email, committing_yes :- bool } ) => forgot_password_view )
 
+var signup_step_one = data (
+	( _ = { _ :- email, _ :- password, password_confirmation :- password, committing_yes :- bool } ) => signup_step_one )
+var signup_step_two = data (
+	( _ = { unbound_user :- unbound (user), committing_yes :- bool } ) => signup_step_two )
 var signup_view = data (
-	( _ = { _ :- email, _ :- password, password_confirmation :- password, committing_yes :- bool } ) => signup_view )
+	( _ = { step_one :- maybe (signup_step_one), step_two :- maybe (signup_step_two), committing_yes :- bool } ) => signup_view )
 var login_view = data (
 	( _ = { _ :- email, _ :- password, _ :- maybe (forgot_password_view), committing_yes :- bool } ) => login_view )
 var settings_view = data (
@@ -154,8 +159,6 @@ var dimensions = data (
 	, height :- number } ) => dimensions )
 
 
-// region feature
-
 var state = data (
 	( _ =
 	{ history :- list (nav)
@@ -181,6 +184,7 @@ module .exports =
 , trophy
 
 , in_features
+, signup_step_one, signup_step_two
 
 , state
 , nav, in_view, contest_view, main_view, profile_view, settings_view, activity_view

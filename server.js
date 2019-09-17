@@ -201,6 +201,17 @@ server_ (routes => routes
 		) (
 		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
 			;ctx .body = { response } } ) ) )
+	.post ('/client/remove', impure ((ctx, next) => 
+		pinpoint (({ client, email }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => {
+			;remove_ (client_id_ (client)) (email) } )
+		) (
+		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
+			;ctx .body = { response } } ) ) )
 	) ),
 
 where
@@ -226,19 +237,21 @@ where
 		) (id_steps_ (_id) ) }
 , update_user = id => _user => {
 	;users [id] = L .modify ([ as_in (user), L .values ]) ((val, key) => pinpoint ([ as_in (user), key, L .valueOr (val) ]) (_user)) (id_user_ (id)) }
+, remove_ = id => _email => {
+	;teams [id] = L .modify (as (team) .members) (L .remove ([ L .elems, L .when (pinpoint (as (mention) .id, id_email_, equals (_email))) ])) (id_team_ (id)) }
 , invite_ = id => _email => {
 	;teams [id] = L .modify (as (team) .invitations) (L .set (L .appendTo) (_email)) (id_team_ (id)) }
 , accept_ = id => _email => {
 	;teams [id_by_email_ (_email)] = pinpoint
-		( L .modify (as (team) .invitations) (R .without ([ id_email_ (id) ]))
-		, L .modify (as (team) .members) (R .append (mention .link (id)))
+		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (id))) ])
+		, L .set ([ as (team) .members, L .appendTo ]) (mention .link (id))
 		) (team_by_email_ (_email) )
 	;delete teams [id]
 	;T (id_invites_ (id)) (R .forEach (_id => {
 		;reject_ (id) (id_email_ (_id)) } ) ) }
 , reject_ = id => _email => {
 	;teams [id_by_email_ (_email)] = pinpoint
-		( L .modify (as (team) .invitations) (R .without ([ id_email_ (id) ]))
+		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (id))) ])
 		) (team_by_email_ (_email) ) }
 
 , _merge_step_sample = R .mergeWith ((_sample_1, _sample_2) => pinpoint (un (as_in (step_sample))) (R .mergeWith (R .max) (pinpoint (as_in (step_sample)) (_sample_1)) (pinpoint (as_in (step_sample)) (_sample_2))))
@@ -279,11 +292,10 @@ where
 	users )
 , id_team_ = id =>
 	pinpoint
-	( trace_as ('a'), pinpoint (L .choice
+	( pinpoint (L .choice
 		( id
 		, [ L .values, L .when (L .any (equals (id))
 			([ as (team) .members, L .elems, as (mention) .id ]) ) ] ) )
-	, trace_as ('c') 
 	, L .valueOr (
 		team (id, mention .link (id), [], []) )
 	) (
