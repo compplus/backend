@@ -117,6 +117,23 @@ server_ (routes => routes
 		) (
 		deserialize (ctx .query) ) .then (serialize) .then (response => {
 			;ctx .body = { response } } ) ) )
+	.post ('/client/team/name', impure ((ctx, next) =>
+		pinpoint (({ client, name }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => {
+			if (L_ .isDefined (id_in_team_ (user_id_ (client_user_ (client))))) {
+				;panic ('You do not own a team!') } } )
+		.then (_ => {
+			if (not (R .endsWith ('hku.hk') (id_email_ (user_id_ (client_user_ (client)))))) {
+				;panic ('You do not own a team!') } } )
+		.then (_ => {
+			name_team_ (team_by_user_ (client_user_ (client))) (name) } )
+		) (
+		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
+			;ctx .body = { response } } ) ) )
 	.get ('/client/step-stat', impure ((ctx, next) =>
 		pinpoint (({ client }) =>
 		go
@@ -156,6 +173,9 @@ server_ (routes => routes
 		.then (_ => {
 			if (not (client_id_ (client))) {
 				;panic ('invalid session') } } )
+		.then (_ => {
+			if (email_in_team_yes (email)) {
+				;panic ('User with this email is already in a team!') } } )
 		//.then (_ => {
 		//	if (not (user_by_email_ (email))) {
 		//		;panic ('User with this email does not exist!') } } )
@@ -253,6 +273,10 @@ where
 	;teams [id_by_email_ (_email)] = pinpoint
 		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (id))) ])
 		) (team_by_email_ (_email) ) }
+, name_team_ = _team => _name => {
+	;teams [team_id_ (_team)] = pinpoint (
+		L .set (as (team) .name) (_name)
+		) (_team ) }
 
 , _merge_step_sample = R .mergeWith ((_sample_1, _sample_2) => pinpoint (un (as_in (step_sample))) (R .mergeWith (R .max) (pinpoint (as_in (step_sample)) (_sample_1)) (pinpoint (as_in (step_sample)) (_sample_2))))
 
@@ -282,31 +306,37 @@ where
 	email_by_id_ (user_id_ (_user))
 , email_by_id_ = _id =>
 	pinpoint
-	( _id, as (credential) .email
+	( _id || K (), as (credential) .email
 	) (credentials )
 
 , id_user_ = id => 
 	pinpoint
 	( id || K ()
-	) (
-	users )
+	) (users )
+, id_own_team_ = id =>
+	pinpoint 
+	( id || K ()
+	) (teams )
+, id_in_team_ = id =>
+	pinpoint (
+	L .values
+	, L .when (L .any (equals (id)) ([ as (team) .members, L .elems, as (mention) .id ])) 
+	) (teams )
 , id_team_ = id =>
 	pinpoint
 	( pinpoint (L .choice
-		( id
+		( id || K ()
 		, [ L .values, L .when (L .any (equals (id))
 			([ as (team) .members, L .elems, as (mention) .id ]) ) ] ) )
 	, L .valueOr (
-		team (id, mention .link (id), [], []) )
-	) (
-	teams )
+		team (id, 'Unnamed', mention .link (id), [], []) )
+	) (teams )
 , id_steps_ = id => 
 	pinpoint
-	( id
+	( id || K ()
 	, L .valueOr (
 		step_stat ([], [], []) )
-	) (
-	step_stats )
+	) (step_stats )
 
 , id_invites_ = id =>
 	pinpoints
@@ -319,10 +349,14 @@ where
 
 , id_email_ = id =>
 	pinpoint
-	( id, as (credential) .email
+	( id || K (), as (credential) .email
 	) (credentials )
 
 , user_id_ = pinpoint (as (user) .id)
+, team_id_ = pinpoint (as (team) .id)
+
+, email_in_team_yes = _email =>
+	not (equals (L .count (as_users) (team_by_email_ (_email))) (1))
 
 
 , create_client = _id => {
@@ -334,12 +368,14 @@ where
 , client_user_ = _client => id_user_ (client_id_ (_client))
 
 
+, as_users = l_sum ([ [ as (team) .captain ], [ as (team) .members, L .elems ] ])
+
 , user_ranking_by_offset_ = _offset => 
 	pinpoints (
 	L .limit (10) (L .offset (_offset) (
 		[ pinpoints (L .values, L .pick (
 			{ name: _user => L .join (' ') ([ L .elems, L .when (I)]) ([ pinpoint (as (user) .first_name) (_user), pinpoint (as (user) .last_name) (_user) ]) || 'Unnamed'
-			, step_count: L .sum ([ as (user) .id, id_steps_, as (step_stat) .by_months, L .elems, map_v_as_value ]) } ) )
+			, step_count: L .sum ([ as (user) .id, id_steps_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
 		, R .sortBy (pinpoint ('step_count', R .negate))
 		, L .indexed
 		, L .elems
@@ -349,9 +385,9 @@ where
 , team_ranking_by_offset_ = _offset => 
 	pinpoints (
 	L .limit (10) (L .offset (_offset) (
-		[ pinpoints (L .values, L .pick (
-			{ name: pinpoint (as (team) .captain, as (mention) .id, id_user_, _user => L .join (' ') ([ L .elems, L .when (I)]) ([ pinpoint (as (user) .first_name) (_user), pinpoint (as (user) .last_name) (_user) ]) || 'Unnamed')
-			, step_count: L .sum ([ l_sum ([ [ as (team) .captain, as (mention) .id ], [ as (team) .members, L .elems, as (mention) .id ] ]), id_steps_, as (step_stat) .by_months, L .elems, map_v_as_value ]) } ) )
+		[ pinpoints (L .values, L .when (pinpoint (L .count (as_users), equals (5))), L .pick (
+			{ name: [ as (team) .name, L .valueOr ('Unnamed') ]
+			, step_count: L .sum ([ as_users, as (mention) .id, id_steps_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
 		, R .sortBy (pinpoint ('step_count', R .negate))
 		, L .indexed
 		, L .elems

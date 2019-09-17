@@ -5,7 +5,7 @@ let { lift_defined } = require ('camarche/calling')
 let { L_ } = require ('camarche/faith')
 let { T } = require ('camarche/calling')
 let { jinx, panic_on } = require ('camarche/effects')
-let { variant_name_, as, as_in, variant_, signature_ } = require ('camarche/adt')
+let { variant_type_, variant_name_, as, as_in, variant_, signature_ } = require ('camarche/adt')
 
 suppose (
 ( memoize = fn => suppose (
@@ -132,8 +132,6 @@ suppose (
 	[ promise, on_, err_ ] )
 
 
-, display_ = lift_defined (pinpoint (L .modify ([ as_string, L .first ]) (R .toUpper), L .replaces ('_view') (''), L .replaces ('_') (' ')))
-
 , name_variant_ = _type => name =>
 	pinpoint (
 	pinpoint (R .toLower, L .replaces (' ') ('_')) (name)
@@ -147,7 +145,7 @@ suppose (
 
 
 
-, { user, team, credential, step_stat, trophy, category, gender, step_sample, time_unit } = require ('./types')
+, { user, team, credential, step_stat, trophy, category, gender, step_sample, time_unit, in_view } = require ('./types')
 
 , serialize_on_ = _types => Y (rec => by (match
 	( ... R .map (([ type_name, _type ]) =>
@@ -175,6 +173,25 @@ suppose (
 , deserialize = deserialize_on_ ({ user, team, credential, step_stat, trophy, category, gender, step_sample, time_unit })
 
 
+, display_ = by (match (
+	case_ (as (gender)) (pinpoint (
+		pinpoint (L .when (I), variant_name_, L .modify ([ as_string, L .first ]) (R .toUpper), L .replaces ('_') (' ')), L .valueOr ('') ) ),
+	case_ (as (category)) (pinpoint (
+		pinpoint (L .when (I), variant_name_, L .modify ([ as_string, L .first ]) (R .toUpper), L .replaces ('_') (' ')), L .valueOr ('') ) ),
+	case_ (L .subset (pinpoint (variant_type_, equals (in_view)))) (pinpoint (
+		pinpoint (L .when (I), variant_name_, L .replaces ('_view') (''), L .modify ([ as_string, L .first ]) (R .toUpper), L .replaces ('_') (' ')), L .valueOr ('') ) ),
+	case_ (K) (K ()) ) )
+
+
+, debounce = delay => fn => 
+	suppose (
+	( timeout
+	) =>
+	x => { 
+		;clearTimeout (timeout)
+		;timeout = setTimeout (_ => {;timeout = undefined ;fn (x)}, delay) } )
+
+
 ) =>
 
 satisfy (module
@@ -195,6 +212,8 @@ satisfy (module
 
 , display_
 , name_variant_
+
+, debounce
 
 , serialize, deserialize }
 } ) )

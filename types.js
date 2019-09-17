@@ -89,6 +89,7 @@ var user = data (
 var team = data (
 	( _ =
 	{ _ :- id
+	, name :- str
 	, captain :- mention (user)
 	, members :- list (mention (user))
 	, invitations :- list (email) }
@@ -106,6 +107,7 @@ var signup_step_one = data (
 	( _ = { _ :- email, _ :- password, password_confirmation :- password, committing_yes :- bool } ) => signup_step_one )
 var signup_step_two = data (
 	( _ = { unbound_user :- unbound (user), committing_yes :- bool } ) => signup_step_two )
+// TODO: formulate step type (dependent?)
 var signup_view = data (
 	( _ = { step_one :- maybe (signup_step_one), step_two :- maybe (signup_step_two), committing_yes :- bool } ) => signup_view )
 var login_view = data (
