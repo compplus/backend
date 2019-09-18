@@ -228,10 +228,7 @@ server_ (routes => routes
 			if (not (client_id_ (client))) {
 				;panic ('invalid session') } } )
 		.then (_ => {
-			if (email_in_team_yes (id_email_ (user_id_ (client_user_ (client))))) {
-				;panic ('You do not own a team!') } } )
-		.then (_ => {
-			if (not (R .endsWith ('hku.hk') (id_email_ (user_id_ (client_user_ (client)))))) {
+			if (not (email_in_team_yes (id_email_ (user_id_ (client_user_ (client))))) && not (R .endsWith ('hku.hk') (id_email_ (user_id_ (client_user_ (client)))))) {
 				;panic ('You do not own a team!') } } )
 		.then (_ => {
 			if (not (R .contains (email) (team_invitations (id_team_ (user_id_ (client_user_ (client))))))) {
