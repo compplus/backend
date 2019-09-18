@@ -163,7 +163,7 @@ server_ (routes => routes
 			if (not (client_id_ (client))) {
 				;panic ('invalid session') } } )
 		.then (_ => 
-			id_invites_ (client_id_ (client)) )
+			invite_ids (client_id_ (client)) )
 		) (
 		deserialize (ctx .query) ) .then (serialize) .then (response => {
 			;ctx .body = { response } } ) ) )
@@ -197,7 +197,7 @@ server_ (routes => routes
 			if (not (user_by_email_ ({ email }))) {
 				;panic ('User with this email does not exist!') } } )
 		.then (_ => {
-			if (not (R .contains (user_id_ (user_by_email_ ({ email }))) (id_invites_ (client_id_ (client))))) {
+			if (not (R .contains (user_id_ (user_by_email_ ({ email }))) (invite_ids (client_id_ (client))))) {
 				;panic ('User did not invite you to his team!') } } )
 		.then (_ => {
 			;accept_ (client_id_ (client)) (email) } )
@@ -214,10 +214,30 @@ server_ (routes => routes
 			if (not (user_by_email_ ({ email }))) {
 				;panic ('User with this email does not exist!') } } )
 		.then (_ => {
-			if (not (R .contains (user_id_ (user_by_email_ ({ email }))) (id_invites_ (client_id_ (client))))) {
+			if (not (R .contains (user_id_ (user_by_email_ ({ email }))) (invite_ids (client_id_ (client))))) {
 				;panic ('User did not invite you to his team!') } } )
 		.then (_ => {
 			;reject_ (client_id_ (client)) (email) } )
+		) (
+		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
+			;ctx .body = { response } } ) ) )
+	.post ('/client/uninvite', impure ((ctx, next) => 
+		pinpoint (({ client, email }) =>
+		go
+		.then (_ => {
+			if (not (client_id_ (client))) {
+				;panic ('invalid session') } } )
+		.then (_ => {
+			if (email_in_team_yes (id_email_ (user_id_ (client_user_ (client))))) {
+				;panic ('You do not own a team!') } } )
+		.then (_ => {
+			if (not (R .endsWith ('hku.hk') (id_email_ (user_id_ (client_user_ (client)))))) {
+				;panic ('You do not own a team!') } } )
+		.then (_ => {
+			if (not (R .contains (email) (team_invitations (id_team_ (user_id_ (client_user_ (client))))))) {
+				;panice ('This user has not been invited to your team!') } } )
+		.then (_ => {
+			;uninvite_ (client_id_ (client)) (email) } )
 		) (
 		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
 			;ctx .body = { response } } ) ) )
@@ -267,12 +287,16 @@ where
 		, L .set ([ as (team) .members, L .appendTo ]) (mention .link (id))
 		) (team_by_email_ (_email) )
 	;delete teams [id]
-	;T (id_invites_ (id)) (R .forEach (_id => {
+	;T (invite_ids (id)) (R .forEach (_id => {
 		;reject_ (id) (id_email_ (_id)) } ) ) }
 , reject_ = id => _email => {
 	;teams [id_by_email_ (_email)] = pinpoint
 		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (id))) ])
 		) (team_by_email_ (_email) ) }
+, uninvite_ = id => _email => {
+	;teams [id] = pinpoint
+		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (_email)) ])
+		) (id_team_ (id)) }
 , name_team_ = _team => _name => {
 	;teams [team_id_ (_team)] = pinpoint (
 		L .set (as (team) .name) (_name)
@@ -338,7 +362,7 @@ where
 		step_stat ([], [], []) )
 	) (step_stats )
 
-, id_invites_ = id =>
+, invite_ids = id =>
 	pinpoints
 	( L .values
 	, L .when (pinpoint
@@ -346,6 +370,7 @@ where
 		, L .any (equals (email_by_id_ (id))) (L .elems) ) )
 	, as (team) .id
 	) (teams )
+, team_invitations = pinpoint (as (team) .invitations)
 
 , id_email_ = id =>
 	pinpoint
