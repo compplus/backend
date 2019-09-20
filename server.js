@@ -19,7 +19,7 @@ serve_
 	.then (_ =>
 		user_by_login_ ({ _email, _password }) )
 	.then (by (match (
-		case_ (L_ .isDefined) (_user => 
+		case_ (L .subset (L_ .isDefined)) (_user => 
 			create_client (user_id_ (_user)) ),
 		case_ (K) (_ => {
 			;panic ('Email and password does not match!') } ) ) ) ) )
@@ -78,7 +78,7 @@ serve_
 		if (not (client_id_ (_client))) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		team_by_user_ (client_user_ (_client)) ) )
+		id_presumed_team (client_id_ (_client)) ) )
 , post_ ('/client/team/rename') (({ _client, _name }) =>
 	go
 	.then (_ => {
@@ -214,6 +214,7 @@ where
 		( as (team) .invitations
 		, L .any (equals (id_email_ (_id))) (L .elems) ) )
 	) (teams ) )
+, client_id_ = _client => pinpoint (_client) (clients)
 , user_by_login_ = ({ _email, _password }) =>
 	pinpoint
 	( L .entries, L .when (([ _, _credential ]) => equals (_credential) (credential (_email, _password)))
@@ -224,8 +225,8 @@ where
 	pinpoints (
 	L .limit (10) (L .offset (_offset) (
 		[ pinpoints (L .values, L .pick (
-			{ name: _user => L .join (' ') ([ L .elems, L .when (I)]) ([ pinpoint (as (user) .first_name) (_user), pinpoint (as (user) .last_name) (_user) ]) || 'Unnamed'
-			, step_count: L .sum ([ as (user) .id, id_presumed_step_stats_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
+			{ name: user_name_
+			, step_count: L .sum ([ as (user) .id, id_as_total_steps ]) } ) )
 		, R .sortBy (({ step_count }) => -step_count)
 		, L .entries
 		, ([ index, { name, step_count } ]) => (
@@ -237,7 +238,7 @@ where
 	L .limit (10) (L .offset (_offset) (
 		[ pinpoints (L .values, L .when (pinpoint (L .count (as_users), equals (5))), L .pick (
 			{ name: [ as (team) .name, L .valueOr ('Unnamed') ]
-			, step_count: L .sum ([ as_users, as (mention) .id, id_presumed_step_stats_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
+			, step_count: L .sum ([ as_users, as (mention) .id, id_as_total_steps ]) } ) )
 		, R .sortBy (({ step_count }) => -step_count)
 		, L .entries
 		, ([ index, { name, step_count } ]) => (
@@ -283,7 +284,6 @@ where
 	;teams [_id] = L .set (as (team) .name) (_name) (id_presumed_team (_id)) }
 
 
-
 , id_email_ = _id =>
 	pinpoint (
 	id_credential_, as (credential) .email
@@ -309,17 +309,23 @@ where
 , user_by_email_ = _email =>
 	id_user_ (id_by_email_ (_email))
 , team_by_user_ = _user =>
-	id_team_ (user_id_ (_user))
+	id_presumed_team (user_id_ (_user))
 , team_by_email_ = _email =>
-	id_team_ (id_by_email_ (_email))
+	id_presumed_team (id_by_email_ (_email))
 , email_by_user_ = _user =>
 	id_email_ (user_id_ (_user))
 
 
+, map_v_as_key = L .first
+, map_v_as_value = L .last
+
+, id_as_total_steps = [ id_presumed_step_stats_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]
 
 
 
-, client_id_ = _client => pinpoint (_client) (clients)
+
+
+
 , client_user_ = _client => id_user_ (client_id_ (_client))
 , user_id_ = pinpoint (as (user) .id)
 , team_id_ = pinpoint (as (team) .id)
@@ -337,7 +343,7 @@ where
 	pinpoint
 	( pinpoints (l_sum ([ as (user) .first_name, as (user) .last_name ]))
 	, L .join (' ') ([ L .elems, L .when (I) ])
-	, L .valueOr ('Unnamed') ) )
+	, _name => _name || 'Unnamed' ) )
 
 , hour_ = _date => + (new Date (_date)) .setMinutes (0, 0, 0)
 , day_ = _date => + (new Date (_date)) .setHours (0, 0, 0, 0)
@@ -369,10 +375,6 @@ where
 	( r = Math.random() * 16 | 0
 	) =>
 	(c == 'x' ? r : (r & 0x3 | 0x8)) .toString (16) ) )
-
-
-, map_v_as_key = L .first
-, map_v_as_value = L .last
 
 , invariant_on_ = fn => x => equals (x) (fn (x))
 
