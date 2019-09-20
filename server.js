@@ -4,422 +4,390 @@ with (require ('./aux'))
 so ((_=_=>
 satisfy (module
 ) (
-server_ (routes => routes
-	.post ('/signup', impure ((ctx, next) =>
-		pinpoint (({ email, password, user }) =>
-		go
-		.then (_ =>
-			user_by_email_ ({ email }) )
-		.then (panic_on ([ [ _x => not (equals (undefined) (_x)), 'User with this email already exists!' ] ]))
-		.then (_ => 
-			create_user ({ email, password, user }) )
-		.then (id => 
-			create_client (id) )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/login', impure ((ctx, next) =>
-		pinpoint (({ email, password }) =>
-		go
-		.then (_ =>
-			user_by_credentials_ ({ email, password }) )
-		.then (panic_on ([ [ equals (undefined), 'Email and password does not match!' ] ]))
-		.then (_user => 
-			create_client (user_id_ (_user)) )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/email', impure ((ctx, next) =>
-		pinpoint (({ client, id }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			id_email_ (id) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/user', impure ((ctx, next) => 
-		pinpoint (({ client, id }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			id_user_ (id) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/team', impure ((ctx, next) => 
-		pinpoint (({ client, id }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			id_team_ (id) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/user-ranking', impure ((ctx, next) => 
-		pinpoint (({ client, offset }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			user_ranking_by_offset_ (+offset) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/team-ranking', impure ((ctx, next) => 
-		pinpoint (({ client, offset }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			team_ranking_by_offset_ (+offset) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/client/user', impure ((ctx, next) =>
-		pinpoint (({ client }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			id_user_ (client_id_ (client)) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/client/user', impure ((ctx, next) => 
-		pinpoint (({ client, user }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => {
-			;update_user (client_id_ (client)) (user) } )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/client/team', impure ((ctx, next) =>
-		pinpoint (({ client }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			team_by_user_ (client_user_ (client)) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/client/team/name', impure ((ctx, next) =>
-		pinpoint (({ client, name }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => {
-			if (L_ .isDefined (id_in_team_ (user_id_ (client_user_ (client))))) {
-				;panic ('You do not own a team!') } } )
-		.then (_ => {
-			if (not (R .endsWith ('hku.hk') (id_email_ (user_id_ (client_user_ (client)))))) {
-				;panic ('You do not own a team!') } } )
-		.then (_ => {
-			name_team_ (team_by_user_ (client_user_ (client))) (name) } )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/client/step-stat', impure ((ctx, next) =>
-		pinpoint (({ client }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			id_steps_ (client_id_ (client)) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/client/step-stat', impure ((ctx, next) => 
-		pinpoint (({ client, step_stat }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			merge_stat (client_id_ (client)) (step_stat) )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.get ('/client/invite', impure ((ctx, next) => 
-		pinpoint (({ client }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => 
-			invite_ids (client_id_ (client)) )
-		) (
-		deserialize (ctx .query) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/client/invite', impure ((ctx, next) => 
-		pinpoint (({ client, email }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => {
-			if (email_in_team_yes (email)) {
-				;panic ('User with this email is already in a team!') } } )
-		//.then (_ => {
-		//	if (not (user_by_email_ (email))) {
-		//		;panic ('User with this email does not exist!') } } )
-		//.then (_ => {
-		//	if (invariant_on_ (pinpoint (team_by_user_, as (team) .captain)) (user_by_email_ (email))) {
-		//		;panic ('User with this email already has a team!') } } )
-		.then (_ => {
-			;invite_ (client_id_ (client)) (email) } )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/client/accept', impure ((ctx, next) => 
-		pinpoint (({ client, email }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => {
-			if (not (user_by_email_ ({ email }))) {
-				;panic ('User with this email does not exist!') } } )
-		.then (_ => {
-			if (not (R .contains (user_id_ (user_by_email_ ({ email }))) (invite_ids (client_id_ (client))))) {
-				;panic ('User did not invite you to his team!') } } )
-		.then (_ => {
-			;accept_ (client_id_ (client)) (email) } )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/client/reject', impure ((ctx, next) => 
-		pinpoint (({ client, email }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => {
-			if (not (user_by_email_ ({ email }))) {
-				;panic ('User with this email does not exist!') } } )
-		.then (_ => {
-			if (not (R .contains (user_id_ (user_by_email_ ({ email }))) (invite_ids (client_id_ (client))))) {
-				;panic ('User did not invite you to his team!') } } )
-		.then (_ => {
-			;reject_ (client_id_ (client)) (email) } )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/client/uninvite', impure ((ctx, next) => 
-		pinpoint (({ client, email }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => {
-			if (not (email_in_team_yes (id_email_ (user_id_ (client_user_ (client))))) && not (R .endsWith ('hku.hk') (id_email_ (user_id_ (client_user_ (client)))))) {
-				;panic ('You do not own a team!') } } )
-		.then (_ => {
-			if (not (R .contains (email) (team_invitations (id_team_ (user_id_ (client_user_ (client))))))) {
-				;panice ('This user has not been invited to your team!') } } )
-		.then (_ => {
-			;uninvite_ (client_id_ (client)) (email) } )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	.post ('/client/remove', impure ((ctx, next) => 
-		pinpoint (({ client, email }) =>
-		go
-		.then (_ => {
-			if (not (client_id_ (client))) {
-				;panic ('invalid session') } } )
-		.then (_ => {
-			;remove_ (client_id_ (client)) (email) } )
-		) (
-		deserialize (ctx .request .body) ) .then (serialize) .then (response => {
-			;ctx .body = { response } } ) ) )
-	) ),
+serve_
+( post_ ('/signup') (({ _email, _password, _user }) =>
+	go
+	.then (_ => {
+		if (L_ .isDefined (user_by_email_ (_email))) {
+			;panic ('User with this email already exists!') } } )
+	.then (_ => 
+		create_user ({ _email, _password, _user }) )
+	.then (_id => 
+		create_client (_id) ) ),
+, post_ ('/login') (({ _email, _password }) =>
+	go
+	.then (_ =>
+		user_by_login_ ({ _email, _password }) )
+	.then (by (match (
+		case_ (L_ .isDefined) (_user => 
+			create_client (user_id_ (_user)) ),
+		case_ (K) (_ => {
+			;panic ('Email and password does not match!') } ) ) ) ) )
+, get_ ('/email') (({ _client, _id }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		id_email_ (_id) ) )
+, get_ ('/user') (({ _client, _id }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		id_user_ (_id) ) )
+, get_ ('/team') (({ _client, _id }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		id_team_ (_id) ) )
+, get_ ('/user-ranking') (({ _client, _offset }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		user_ranking_by_offset_ (+_offset) ) )
+, get_ ('/team-ranking') (({ _client, _offset }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		team_ranking_by_offset_ (+_offset) ) )
+, get_ ('/client/user') (({ _client }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		id_user_ (client_id_ (_client)) ) )
+, post_ ('/client/user') (({ _client, _user }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => {
+		;update_user (client_id_ (_client)) (_user) } ) )
+, get_ ('/client/team') (({ _client }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		team_by_user_ (client_user_ (_client)) ) )
+, post_ ('/client/team/rename') (({ _client, _name }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => {
+		var _id = user_id_ (client_user_ (_client))
+		if (not (L_ .isDefined (id_captain_team (_id)) || R .endsWith ('hku.hk') (id_email_ (_id)))) {
+			;panic ('You do not own a team!') } } )
+	.then (_ => {
+		;rename_team_ (user_id_ (client_user_ (_client))) (_name) } ) )
+, get_ ('/client/step-stat') (({ _client }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		id_presumed_step_stats_ (client_id_ (_client)) ) )
+, post_ ('/client/step-stat') (({ _client, _step_stat }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => {
+		;merge_stat (client_id_ (_client)) (_step_stat) } ) )
+, get_ ('/client/invite') (({ _client }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => 
+		id_inviters_ (client_id_ (_client)) ) )
+, post_ ('/client/invite') (({ _client, _email }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => {
+		if (email_in_team_yes (_email)) {
+			;panic ('User with this email is already in a team!') } } )
+	//.then (_ => {
+	//	if (not (user_by_email_ (_email))) {
+	//		;panic ('User with this email does not exist!') } } )
+	//.then (_ => {
+	//	if (invariant_on_ (pinpoint (team_by_user_, as (team) .captain)) (user_by_email_ (_email))) {
+	//		;panic ('User with this email already has a team!') } } )
+	.then (_ => {
+		;invite_ (client_id_ (_client)) (_email) } ) )
+, post_ ('/client/uninvite') (({ _client, _email }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => {
+		if (not (email_in_team_yes (id_email_ (user_id_ (client_user_ (_client))))) && not (R .endsWith ('hku.hk') (id_email_ (user_id_ (client_user_ (_client)))))) {
+			;panic ('You do not own a team!') } } )
+	.then (_ => {
+		if (not (R .contains (_email) (team_invitations (id_team_ (user_id_ (client_user_ (_client))))))) {
+			;panice ('This user has not been invited to your team!') } } )
+	.then (_ => {
+		;uninvite_ (client_id_ (_client)) (_email) } ) )
+, post_ ('/client/reject') (({ _client, _email }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => {
+		if (not (user_by_email_ (_email))) {
+			;panic ('User with this email does not exist!') } } )
+	.then (_ => {
+		if (not (R .contains (user_id_ (user_by_email_ (_email))) (id_inviters_ (client_id_ (_client))))) {
+			;panic ('User did not invite you to his team!') } } )
+	.then (_ => {
+		;reject_ (client_id_ (_client)) (_email) } ) )
+, post_ ('/client/accept') (({ _client, _email }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => {
+		if (not (user_by_email_ (_email))) {
+			;panic ('User with this email does not exist!') } } )
+	.then (_ => {
+		if (not (R .contains (user_id_ (user_by_email_ (_email))) (id_inviters_ (client_id_ (_client))))) {
+			;panic ('User did not invite you to his team!') } } )
+	.then (_ => {
+		;accept_ (client_id_ (_client)) (_email) } ) )
+, post_ ('/client/remove') (({ _client, _email }) =>
+	go
+	.then (_ => {
+		if (not (client_id_ (_client))) {
+			;panic ('invalid session') } } )
+	.then (_ => {
+		;remove_ (client_id_ (_client)) (_email) } ) ) ) ),
 
 where
 
 
-, create_user = ({ email, password, user: _user }) => {
-	var { faculty, department, category, gender, first_name, last_name, age, height, weight } = pinpoint (as_in (user)) (_user)
-	var id = uuid ()
-	;users [id] =
-		user
-		( id, faculty, department, category, gender, first_name, last_name, age, height, weight )
-	;credentials [id] = credential (email, password)
-	return id }
-, create_steps = id => {
-	;step_stats [id] = step_stat ([], [], []) }
-
-
-, merge_stat = _id => _step_stat => {
-	;step_stats [_id] = pinpoint
-		( L .modify ([ as (step_stat) .by_hours, un (L .keyed) ]) (_merge_step_sample (pinpoint (as (step_stat) .by_hours, un (L .keyed)) (_step_stat)))
-		, L .modify ([ as (step_stat) .by_days, un (L .keyed) ]) (_merge_step_sample (pinpoint (as (step_stat) .by_days, un (L .keyed)) (_step_stat)))
-		, L .modify ([ as (step_stat) .by_months, un (L .keyed) ]) (_merge_step_sample (pinpoint (as (step_stat) .by_months, un (L .keyed)) (_step_stat)))
-		) (id_steps_ (_id) ) }
-, update_user = id => _user => {
-	;users [id] = L .modify ([ as_in (user), L .values ]) ((val, key) => pinpoint ([ as_in (user), key, L .valueOr (val) ]) (_user)) (id_user_ (id)) }
-, remove_ = id => _email => {
-	;teams [id] = L .modify (as (team) .members) (L .remove ([ L .elems, L .when (pinpoint (as (mention) .id, id_email_, equals (_email))) ])) (id_team_ (id)) }
-, invite_ = id => _email => {
-	;teams [id] = L .modify (as (team) .invitations) (L .set (L .appendTo) (_email)) (id_team_ (id)) }
-, accept_ = id => _email => {
-	;teams [id_by_email_ (_email)] = pinpoint
-		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (id))) ])
-		, L .set ([ as (team) .members, L .appendTo ]) (mention .link (id))
-		) (team_by_email_ (_email) )
-	;delete teams [id]
-	;T (invite_ids (id)) (R .forEach (_id => {
-		;reject_ (id) (id_email_ (_id)) } ) ) }
-, reject_ = id => _email => {
-	;teams [id_by_email_ (_email)] = pinpoint
-		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (id))) ])
-		) (team_by_email_ (_email) ) }
-, uninvite_ = id => _email => {
-	;teams [id] = pinpoint
-		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (_email)) ])
-		) (id_team_ (id)) }
-, name_team_ = _team => _name => {
-	;teams [team_id_ (_team)] = pinpoint (
-		L .set (as (team) .name) (_name)
-		) (_team ) }
-
-, _merge_step_sample = R .mergeWith ((_sample_1, _sample_2) => pinpoint (un (as_in (step_sample))) (R .mergeWith (R .max) (pinpoint (as_in (step_sample)) (_sample_1)) (pinpoint (as_in (step_sample)) (_sample_2))))
-
-, hour_ = _date => + (new Date (_date)) .setMinutes (0, 0, 0)
-, day_ = _date => + (new Date (_date)) .setHours (0, 0, 0, 0)
-, month_ = _date => + (new Date ((new Date (_date)) .setDate (1))) .setHours (0, 0, 0, 0)
-
-
+// TODO: graphql
 , id_by_email_ = _email =>
 	pinpoint
 	( L .entries, L .when (pinpoint (([ _, _credential ]) => pinpoint (as (credential) .email) (_credential), equals (_email)))
 	, ([ _id, _ ]) => _id
 	) (credentials )
-, user_by_credentials_ = ({ email, password }) =>
-	pinpoint
-	( L .entries, L .when (([ _, _credential ]) => equals (_credential) (credential (email, password)))
-	, ([ _id, _ ]) => _id
-	, id_user_
-	) (credentials )
-, user_by_email_ = ({ email }) =>
-	id_user_ (id_by_email_ (email))
-, team_by_user_ = _user =>
-	pinpoint (user_id_, L .when (I), id_team_) (_user)
-, team_by_email_ = _email =>
-	id_team_ (id_by_email_ (_email))
-, email_by_user_ = _user =>
-	email_by_id_ (user_id_ (_user))
-, email_by_id_ = _id =>
-	pinpoint
-	( _id || K (), as (credential) .email
-	) (credentials )
-
-, id_user_ = id => 
-	pinpoint
-	( id || K ()
-	) (users )
-, id_own_team_ = id =>
-	pinpoint 
-	( id || K ()
-	) (teams )
-, id_in_team_ = id =>
+, id_credential_ = lift_defined (_id =>
 	pinpoint (
-	L .values
-	, L .when (L .any (equals (id)) ([ as (team) .members, L .elems, as (mention) .id ])) 
-	) (teams )
-, id_team_ = id =>
+	_id
+	) (credentials ) )
+, id_user_ = lift_defined (_id => 
+	pinpoint (
+	_id
+	) (users ) )
+, id_step_stats_ = lift_defined (_id => 
+	pinpoint (
+	_id
+	) (step_stats ) )
+, id_captain_team = lift_defined (_id =>
+	pinpoint (
+	_id
+	) (teams ) )
+, id_member_team = lift_defined (_id =>
 	pinpoint
-	( pinpoint (L .choice
-		( id || K ()
-		, [ L .values, L .when (L .any (equals (id))
-			([ as (team) .members, L .elems, as (mention) .id ]) ) ] ) )
-	, L .valueOr (
-		team (id, 'Unnamed', mention .link (id), [], []) )
-	) (teams )
-, id_steps_ = id => 
-	pinpoint
-	( id || K ()
-	, L .valueOr (
-		step_stat ([], [], []) )
-	) (step_stats )
-
-, invite_ids = id =>
+	( L .values
+	, L .when (L .any (equals (_id)) ([ as (team) .members, L .elems, as (mention) .id ])) 
+	) (teams ) )
+, id_invitations_teams = lift_defined (_id =>
 	pinpoints
 	( L .values
 	, L .when (pinpoint
 		( as (team) .invitations
-		, L .any (equals (email_by_id_ (id))) (L .elems) ) )
-	, as (team) .id
-	) (teams )
-, team_invitations = pinpoint (as (team) .invitations)
-
-, id_email_ = id =>
+		, L .any (equals (id_email_ (_id))) (L .elems) ) )
+	) (teams ) )
+, user_by_login_ = ({ _email, _password }) =>
 	pinpoint
-	( id || K (), as (credential) .email
+	( L .entries, L .when (([ _, _credential ]) => equals (_credential) (credential (_email, _password)))
+	, ([ _id, _ ]) => _id
+	, id_user_
 	) (credentials )
-
-, user_id_ = pinpoint (as (user) .id)
-, team_id_ = pinpoint (as (team) .id)
-
-, email_in_team_yes = _email =>
-	not (equals (L .count (as_users) (team_by_email_ (_email))) (1))
-
-
-, create_client = _id => {
-	var _client = uuid ()
-	while (clients [_client]) {;_client = uuid ()}
-	;clients [_client] = { id: _id }
-	return _client }
-, client_id_ = _client => pinpoint (_client, 'id') (clients)
-, client_user_ = _client => id_user_ (client_id_ (_client))
-
-
-, as_users = l_sum ([ [ as (team) .captain ], [ as (team) .members, L .elems ] ])
-
 , user_ranking_by_offset_ = _offset => 
 	pinpoints (
 	L .limit (10) (L .offset (_offset) (
 		[ pinpoints (L .values, L .pick (
 			{ name: _user => L .join (' ') ([ L .elems, L .when (I)]) ([ pinpoint (as (user) .first_name) (_user), pinpoint (as (user) .last_name) (_user) ]) || 'Unnamed'
-			, step_count: L .sum ([ as (user) .id, id_steps_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
-		, R .sortBy (pinpoint ('step_count', R .negate))
-		, L .indexed
-		, L .elems
-		, ([ index, { name, step_count } ]) => ({ rank: index + 1, name, step_count }) ] ) )
+			, step_count: L .sum ([ as (user) .id, id_presumed_step_stats_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
+		, R .sortBy (({ step_count }) => -step_count)
+		, L .indexed, L .elems
+		, ([ index, { name, step_count } ]) => (
+			{ rank: index + 1
+			, name, step_count } ) ] ) )
 	) (users )
-
 , team_ranking_by_offset_ = _offset => 
 	pinpoints (
 	L .limit (10) (L .offset (_offset) (
 		[ pinpoints (L .values, L .when (pinpoint (L .count (as_users), equals (5))), L .pick (
 			{ name: [ as (team) .name, L .valueOr ('Unnamed') ]
-			, step_count: L .sum ([ as_users, as (mention) .id, id_steps_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
-		, R .sortBy (pinpoint ('step_count', R .negate))
-		, L .indexed
-		, L .elems
-		, ([ index, { name, step_count } ]) => ({ rank: index + 1, name, step_count }) ] ) )
+			, step_count: L .sum ([ as_users, as (mention) .id, id_presumed_step_stats_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
+		, R .sortBy (({ step_count }) => -step_count)
+		, L .indexed, L .elems
+		, ([ index, { name, step_count } ]) => (
+			{ rank: index + 1
+			, name, step_count } ) ] ) )
 	) (teams )
 
 
+, create_client = _id => {
+	var _client = uuid ()
+	while (clients [_client]) {;_client = uuid ()}
+	;clients [_client] = { _id }
+	return _client }
+, create_user = ({ _email, _password, _user }) => {
+	var { faculty, department, category, gender, first_name, last_name, age, height, weight } = pinpoint (as_in (user)) (_user)
+	var _id = uuid ()
+	;users [_id] =
+		user
+		( _id, faculty, department, category, gender, first_name, last_name, age, height, weight )
+	;credentials [_id] = credential (_email, _password)
+	return _id }
+, merge_stat = _id => _step_stat => {
+	;step_stats [_id] = step_stats_merge_ (_step_stat) (id_presumed_step_stats_ (_id) ) }
+, update_user = _id => _unbound_user => {
+	;users [_id] = L .modify ([ as_in (user), L .values ]) ((val, key) => pinpoint ([ as_in (user), key, L .valueOr (val) ]) (_unbound_user)) (id_user_ (_id)) }
+, remove_ = _id => _email => {
+	;teams [_id] = L .modify (as (team) .members) (L .remove ([ L .elems, L .when (pinpoint (as (mention) .id, id_email_, equals (_email))) ])) (id_team_ (_id)) }
+, invite_ = _id => _email => {
+	;teams [_id] = L .modify (as (team) .invitations) (L .set (L .appendTo) (_email)) (id_team_ (_id)) }
+, accept_ = _id => _email => {
+	;teams [id_by_email_ (_email)] = pinpoint
+		( L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (_id))) ])
+		, L .set ([ as (team) .members, L .appendTo ]) (mention .link (_id))
+		) (team_by_email_ (_email) )
+	;delete teams [_id]
+	;T (id_inviters_ (_id)) (R .forEach (_id => {
+		;reject_ (_id) (id_email_ (_id)) } ) ) }
+, reject_ = _id => _email => {
+	;teams [id_by_email_ (_email)] = L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (_id))) ]) (team_by_email_ (_email)) }
+, uninvite_ = _id => _email => {
+	;teams [_id] = L .remove ([ as (team) .invitations, L .elems, L .when (equals (_email)) ]) (id_presumed_team (_id)) }
+, rename_team_ = _id => _name => {
+	;teams [_id] = L .set (as (team) .name) (_name) (id_presumed_team (_id)) }
 
 
 
+, id_email_ = _id =>
+	pinpoint (
+	id_credential_, as (credential) .email
+	) (_id )
+, id_team_ = _id =>
+	pinpoint (
+	L .choice
+	( id_captain_team
+	, id_member_team )
+	) (_id )
+, id_presumed_team = _id =>
+	pinpoint (
+	id_team_, L .valueOr (team (_id, 'Unnamed', mention .link (_id), [], []))
+	) (_id )
+, id_presumed_step_stats_ = _id => 
+	pinpoint (
+	id_step_stats_, L .valueOr (step_stat ([], [], []))
+	) (_id )
+, id_inviters_ = _id =>
+	pinpoints (
+	id_invitations_teams, L .elems, as (team) .id
+	) (_id )
+, user_by_email_ = _email =>
+	id_user_ (id_by_email_ (_email))
+, team_by_user_ = _user =>
+	id_team_ (user_id_ (_user))
+, team_by_email_ = _email =>
+	id_team_ (id_by_email_ (_email))
+, email_by_user_ = _user =>
+	id_email_ (user_id_ (_user))
+
+
+
+
+
+, client_id_ = _client => pinpoint (_client, '_id') (clients)
+, client_user_ = _client => id_user_ (client_id_ (_client))
+, user_id_ = pinpoint (as (user) .id)
+, team_id_ = pinpoint (as (team) .id)
+, team_invitations = pinpoint (as (team) .invitations)
+, email_in_team_yes = _email =>
+	not (equals (L .count (as_users) (team_by_email_ (_email))) (1))
+
+
+
+
+
+, as_users = l_sum ([ [ as (team) .captain ], [ as (team) .members, L .elems ] ])
+
+, hour_ = _date => + (new Date (_date)) .setMinutes (0, 0, 0)
+, day_ = _date => + (new Date (_date)) .setHours (0, 0, 0, 0)
+, month_ = _date => + (new Date ((new Date (_date)) .setDate (1))) .setHours (0, 0, 0, 0)
+
+, step_stats_merge_ = a => b =>
+	pinpoint
+	( L .modify ([ as (step_stat) .by_hours, un (L .keyed) ]) (step_sample_merge_ (pinpoint (as (step_stat) .by_hours, un (L .keyed)) (b)))
+	, L .modify ([ as (step_stat) .by_days, un (L .keyed) ]) (step_sample_merge_ (pinpoint (as (step_stat) .by_days, un (L .keyed)) (b)))
+	, L .modify ([ as (step_stat) .by_months, un (L .keyed) ]) (step_sample_merge_ (pinpoint (as (step_stat) .by_months, un (L .keyed)) (b)))
+	) (a )
+, step_sample_merge_ = a => b =>
+	R .mergeWith ((_sample_1, _sample_2) => 
+		pinpoint 
+		( un (as_in (step_sample))
+		) (R .mergeWith (R .max
+			) (pinpoint (as_in (step_sample)) (_sample_1)
+			) (pinpoint (as_in (step_sample)) (_sample_2) ) )
+	) (a) (b )
+
+
+
+
+// why is this not in aux
+
+, uuid = _ =>
+	'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx' .replace (/[xy]/g, c => 
+	suppose (
+	( r = Math.random() * 16 | 0
+	) =>
+	(c == 'x' ? r : (r & 0x3 | 0x8)) .toString (16) ) )
+
+
+, map_v_as_key = L .first
+, map_v_as_value = L .last
+
+, invariant_on_ = fn => x => equals (x) (fn (x))
+
+
+
+// server utils 
+
+, get_ = path => flow =>  [ 'get', path, impure ((ctx, next) =>
+	pinpoint (
+	flow
+	) (
+	deserialize (ctx .query) ) .then (serialize) .then (response => {
+		;ctx .body = { response } } ) ) ]
+, post_ = path => flow => [ 'post', path, impure ((ctx, next) =>
+	pinpoint (
+	flow
+	) (
+	deserialize (ctx .request .body) ) .then (serialize) .then (response => {
+		;ctx .body = { response } } ) ) ]
+, serve_ = (... paths) =>
+	server_ (_routes =>
+		L .foldl ((_route, [ method, path, middleware ]) => 
+			_route [method] (path, middleware)
+		) (_routes) (L .elems) (paths ) )
 , server_ = routes =>
 	require ('koa-qs') (new (require ('koa')))
 		.use (require ('koa-compress') ())
@@ -441,6 +409,10 @@ where
 
 
 
+
+
+// persistence
+
 , load = name => {
 	try {
 		return { ... deserialize (require ('./' + name + '.json')) } }
@@ -451,19 +423,9 @@ where
 
 
 
-, uuid = _ =>
-	'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx' .replace (/[xy]/g, c => 
-	suppose (
-	( r = Math.random() * 16 | 0
-	) =>
-	(c == 'x' ? r : (r & 0x3 | 0x8)) .toString (16) ) )
 
 
-, map_v_as_key = L .first
-, map_v_as_value = L .last
-
-, invariant_on_ = fn => x => equals (x) (fn (x))
-
+// config
 
 , debug = true
 
@@ -473,6 +435,9 @@ where
 , teams = load ('teams')
 , step_stats = load ('step-stats')
 , trophies = load ('trophies')
+
+
+// features
 
 , $__persistence = jinx (_ => {
 	;setInterval (_ => {
