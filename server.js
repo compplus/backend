@@ -13,7 +13,7 @@ serve_
 	.then (_ => 
 		create_user ({ _email, _password, _user }) )
 	.then (_id => 
-		create_client (_id) ) ),
+		create_client (_id) ) )
 , post_ ('/login') (({ _email, _password }) =>
 	go
 	.then (_ =>
@@ -27,63 +27,63 @@ serve_
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		id_email_ (_id) ) )
 , get_ ('/user') (({ _client, _id }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		id_user_ (_id) ) )
 , get_ ('/team') (({ _client, _id }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		id_team_ (_id) ) )
 , get_ ('/user-ranking') (({ _client, _offset }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		user_ranking_by_offset_ (+_offset) ) )
 , get_ ('/team-ranking') (({ _client, _offset }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		team_ranking_by_offset_ (+_offset) ) )
 , get_ ('/client/user') (({ _client }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		id_user_ (client_id_ (_client)) ) )
 , post_ ('/client/user') (({ _client, _user }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => {
 		;update_user (client_id_ (_client)) (_user) } ) )
 , get_ ('/client/team') (({ _client }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		team_by_user_ (client_user_ (_client)) ) )
 , post_ ('/client/team/rename') (({ _client, _name }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => {
 		var _id = user_id_ (client_user_ (_client))
 		if (not (L_ .isDefined (id_captain_team (_id)) || R .endsWith ('hku.hk') (id_email_ (_id)))) {
@@ -94,28 +94,28 @@ serve_
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		id_presumed_step_stats_ (client_id_ (_client)) ) )
 , post_ ('/client/step-stat') (({ _client, _step_stat }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => {
 		;merge_stat (client_id_ (_client)) (_step_stat) } ) )
 , get_ ('/client/invite') (({ _client }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => 
 		id_inviters_ (client_id_ (_client)) ) )
 , post_ ('/client/invite') (({ _client, _email }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => {
 		if (email_in_team_yes (_email)) {
 			;panic ('User with this email is already in a team!') } } )
@@ -123,33 +123,36 @@ serve_
 	//	if (not (user_by_email_ (_email))) {
 	//		;panic ('User with this email does not exist!') } } )
 	//.then (_ => {
-	//	if (invariant_on_ (pinpoint (team_by_user_, as (team) .captain)) (user_by_email_ (_email))) {
+	//	if (L_ .isDefined (id_captain_team (id_by_email_ (_email)))) {
 	//		;panic ('User with this email already has a team!') } } )
 	.then (_ => {
 		;invite_ (client_id_ (_client)) (_email) } ) )
 , post_ ('/client/uninvite') (({ _client, _email }) =>
+	suppose (
+	( _id = user_id_ (client_user_ (_client))
+	) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		if (not (email_in_team_yes (id_email_ (user_id_ (client_user_ (_client))))) && not (R .endsWith ('hku.hk') (id_email_ (user_id_ (client_user_ (_client)))))) {
+		if (not (L_ .isDefined (id_captain_team (_id)) || R .endsWith ('hku.hk') (id_email_ (_id)))) {
 			;panic ('You do not own a team!') } } )
 	.then (_ => {
-		if (not (R .contains (_email) (team_invitations (id_team_ (user_id_ (client_user_ (_client))))))) {
-			;panice ('This user has not been invited to your team!') } } )
+		if (not (R .contains (_email) (team_invitations_ (id_presumed_team (_id))))) {
+			;panic ('This user has not been invited to your team!') } } )
 	.then (_ => {
-		;uninvite_ (client_id_ (_client)) (_email) } ) )
+		;uninvite_ (client_id_ (_client)) (_email) } ) ) )
 , post_ ('/client/reject') (({ _client, _email }) =>
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => {
 		if (not (user_by_email_ (_email))) {
 			;panic ('User with this email does not exist!') } } )
 	.then (_ => {
-		if (not (R .contains (user_id_ (user_by_email_ (_email))) (id_inviters_ (client_id_ (_client))))) {
+		if (not (R .contains (id_by_email_ (_email)) (id_inviters_ (client_id_ (_client))))) {
 			;panic ('User did not invite you to his team!') } } )
 	.then (_ => {
 		;reject_ (client_id_ (_client)) (_email) } ) )
@@ -157,12 +160,12 @@ serve_
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => {
 		if (not (user_by_email_ (_email))) {
 			;panic ('User with this email does not exist!') } } )
 	.then (_ => {
-		if (not (R .contains (user_id_ (user_by_email_ (_email))) (id_inviters_ (client_id_ (_client))))) {
+		if (not (R .contains (id_by_email_ (_email)) (id_inviters_ (client_id_ (_client))))) {
 			;panic ('User did not invite you to his team!') } } )
 	.then (_ => {
 		;accept_ (client_id_ (_client)) (_email) } ) )
@@ -170,7 +173,7 @@ serve_
 	go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
-			;panic ('invalid session') } } )
+			;panic ('Your session has expired!') } } )
 	.then (_ => {
 		;remove_ (client_id_ (_client)) (_email) } ) ) ) ),
 
@@ -224,9 +227,9 @@ where
 			{ name: _user => L .join (' ') ([ L .elems, L .when (I)]) ([ pinpoint (as (user) .first_name) (_user), pinpoint (as (user) .last_name) (_user) ]) || 'Unnamed'
 			, step_count: L .sum ([ as (user) .id, id_presumed_step_stats_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
 		, R .sortBy (({ step_count }) => -step_count)
-		, L .indexed, L .elems
+		, L .entries
 		, ([ index, { name, step_count } ]) => (
-			{ rank: index + 1
+			{ rank: +index + 1
 			, name, step_count } ) ] ) )
 	) (users )
 , team_ranking_by_offset_ = _offset => 
@@ -236,9 +239,9 @@ where
 			{ name: [ as (team) .name, L .valueOr ('Unnamed') ]
 			, step_count: L .sum ([ as_users, as (mention) .id, id_presumed_step_stats_, as (step_stat) .by_months, L .elems, map_v_as_value, as (step_sample) .steps ]) } ) )
 		, R .sortBy (({ step_count }) => -step_count)
-		, L .indexed, L .elems
+		, L .entries
 		, ([ index, { name, step_count } ]) => (
-			{ rank: index + 1
+			{ rank: +index + 1
 			, name, step_count } ) ] ) )
 	) (teams )
 
@@ -246,7 +249,7 @@ where
 , create_client = _id => {
 	var _client = uuid ()
 	while (clients [_client]) {;_client = uuid ()}
-	;clients [_client] = { _id }
+	;clients [_client] = _id
 	return _client }
 , create_user = ({ _email, _password, _user }) => {
 	var { faculty, department, category, gender, first_name, last_name, age, height, weight } = pinpoint (as_in (user)) (_user)
@@ -316,11 +319,11 @@ where
 
 
 
-, client_id_ = _client => pinpoint (_client, '_id') (clients)
+, client_id_ = _client => pinpoint (_client) (clients)
 , client_user_ = _client => id_user_ (client_id_ (_client))
 , user_id_ = pinpoint (as (user) .id)
 , team_id_ = pinpoint (as (team) .id)
-, team_invitations = pinpoint (as (team) .invitations)
+, team_invitations_ = pinpoint (as (team) .invitations)
 , email_in_team_yes = _email =>
 	not (equals (L .count (as_users) (team_by_email_ (_email))) (1))
 
@@ -329,6 +332,12 @@ where
 
 
 , as_users = l_sum ([ [ as (team) .captain ], [ as (team) .members, L .elems ] ])
+
+, user_name_ = by (_user =>
+	pinpoint
+	( pinpoints (l_sum ([ as (user) .first_name, as (user) .last_name ]))
+	, L .join (' ') ([ L .elems, L .when (I) ])
+	, L .valueOr ('Unnamed') ) )
 
 , hour_ = _date => + (new Date (_date)) .setMinutes (0, 0, 0)
 , day_ = _date => + (new Date (_date)) .setHours (0, 0, 0, 0)
