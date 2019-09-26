@@ -6,14 +6,15 @@ satisfy (module
 ) (
 serve_
 ( post_ ('/signup') (({ _email, _password, _user }) =>
-	go
+	go_ ([ user_by_email_ (_email) ])
+	.then (([ user_email ]) => go
 	.then (_ => {
-		if (L_ .isDefined (user_by_email_ (_email))) {
+		if (L_ .isDefined (user_email)) {
 			;panic ('User with this email already exists!') } } )
 	.then (_ => 
 		create_user ({ _email, _password, _user }) )
 	.then (_id => 
-		create_client (_id) ) )
+		create_client (_id) ) ) )
 , post_ ('/login') (({ _email, _password }) =>
 	go
 	.then (_ =>
@@ -24,168 +25,177 @@ serve_
 		case_ (K) (_ => {
 			;panic ('Email and password does not match!') } ) ) ) ) )
 , get_ ('/email') (({ _client, _id }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		id_email_ (_id) ) )
+		id_email_ (_id) ) ) )
 , get_ ('/user') (({ _client, _id }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		id_user_ (_id) ) )
+		id_user_ (_id) ) ) )
 , get_ ('/team') (({ _client, _id }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		id_team_ (_id) ) )
+		id_team_ (_id) ) ) )
 , get_ ('/user-ranking') (({ _client, _offset }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		user_ranking_by_offset_ (+_offset) ) )
+		user_ranking_by_offset_ (+_offset) ) ) )
 , get_ ('/team-ranking') (({ _client, _offset }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		team_ranking_by_offset_ (+_offset) ) )
+		team_ranking_by_offset_ (+_offset) ) ) )
 , get_ ('/client/user') (({ _client }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		id_user_ (client_id_ (_client)) ) )
+		id_user_ (client_id) ) ) )
 , post_ ('/client/user') (({ _client, _user }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		;update_user (client_id_ (_client)) (_user) } ) )
+		;update_user (client_id) (_user) } ) ) )
 , get_ ('/client/team') (({ _client }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		id_presumed_team (client_id_ (_client)) ) )
+		id_presumed_team_ (client_id) ) ) )
 , post_ ('/client/team/rename') (({ _client, _name }) =>
-	go
+	go_ ([ client_id_ (_client), client_email_ (_client), client_captain_team_ (_client) ])
+	.then (([ client_id, client_email, client_captain_team ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		var _id = user_id_ (client_user_ (_client))
-		if (not (L_ .isDefined (id_captain_team (_id)) || R .endsWith ('hku.hk') (id_email_ (_id)))) {
+		if (not (L_ .isDefined (client_captain_team) || R .endsWith ('hku.hk') (client_email))) {
 			;panic ('You do not own a team!') } } )
 	.then (_ => {
-		;rename_team_ (user_id_ (client_user_ (_client))) (_name) } ) )
+		;rename_team_ (client_id_) (_name) } ) ) )
 , get_ ('/client/step-stat') (({ _client }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		id_presumed_step_stats_ (client_id_ (_client)) ) )
+		id_presumed_step_stats_ (client_id) ) ) )
 , post_ ('/client/step-stat') (({ _client, _step_stat }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		;merge_stat (client_id_ (_client)) (_step_stat) } ) )
+		;merge_stat (client_id) (_step_stat) } ) ) )
 , get_ ('/client/invite') (({ _client }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => 
-		id_inviters_ (client_id_ (_client)) ) )
+		id_inviters_ (client_id) ) ) )
 , post_ ('/client/invite') (({ _client, _email }) =>
-	go
+	go_ ([ client_id_ (_client), client_in_team_yes_ (_client) ])
+	.then (([ client_id, client_in_team_yes ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		if (email_in_team_yes (_email)) {
+		if (client_in_team_yes) {
 			;panic ('User with this email is already in a team!') } } )
-	//.then (_ => {
-	//	if (not (user_by_email_ (_email))) {
-	//		;panic ('User with this email does not exist!') } } )
-	//.then (_ => {
-	//	if (L_ .isDefined (id_captain_team (id_by_email_ (_email)))) {
-	//		;panic ('User with this email already has a team!') } } )
 	.then (_ => {
-		;invite_ (client_id_ (_client)) (_email) } ) )
+		;invite_ (client_id) (_email) } ) ) )
 , post_ ('/client/uninvite') (({ _client, _email }) =>
-	suppose (
-	( _id = user_id_ (client_user_ (_client))
-	) =>
-	go
+	go_ ([ client_id_ (_client), client_captain_can_yes_ (_client), client_team_invitations_ (_client) ])
+	.then (([ client_id, client_captain_can_yes, client_team_invitations ]) => go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		if (not (L_ .isDefined (id_captain_team (_id)) || R .endsWith ('hku.hk') (id_email_ (_id)))) {
+		if (not (client_captain_can_yes)) {
 			;panic ('You do not own a team!') } } )
 	.then (_ => {
-		if (not (R .contains (_email) (team_invitations_ (id_presumed_team (_id))))) {
+		if (not (R .contains (_email) (client_team_invitations))) {
 			;panic ('This user has not been invited to your team!') } } )
 	.then (_ => {
-		;uninvite_ (client_id_ (_client)) (_email) } ) ) )
+		;uninvite_ (client_id) (_email) } ) ) )
 , post_ ('/client/reject') (({ _client, _email }) =>
-	go
+	go_ ([ client_id_ (_client), email_id_ (_email), client_inviters_ (_client) ])
+	.then (([ client_id, email_id, client_inviters ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		if (not (user_by_email_ (_email))) {
+		if (not (email_id)) {
 			;panic ('User with this email does not exist!') } } )
 	.then (_ => {
-		if (not (R .contains (id_by_email_ (_email)) (id_inviters_ (client_id_ (_client))))) {
+		if (not (R .contains (email_id) (client_inviters))) {
 			;panic ('User did not invite you to his team!') } } )
 	.then (_ => {
-		;reject_ (client_id_ (_client)) (_email) } ) )
+		;reject_ (client_id) (_email) } ) ) )
 , post_ ('/client/accept') (({ _client, _email }) =>
-	go
+	go_ ([ client_id_ (_client), email_id_ (_email), client_inviters_ (_client) ])
+	.then (([ client_id, email_id, client_inviters ]) => go
 	.then (_ => {
-		if (not (client_id_ (_client))) {
+		if (not (client_id)) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		if (not (user_by_email_ (_email))) {
+		if (not (email_id)) {
 			;panic ('User with this email does not exist!') } } )
 	.then (_ => {
-		if (not (R .contains (id_by_email_ (_email)) (id_inviters_ (client_id_ (_client))))) {
+		if (not (R .contains (email_id) (client_inviters))) {
 			;panic ('User did not invite you to his team!') } } )
 	.then (_ => {
-		;accept_ (client_id_ (_client)) (_email) } ) )
+		;accept_ (client_id_ (_client)) (_email) } ) ) )
 , post_ ('/client/remove') (({ _client, _email }) =>
-	go
+	go_ ([ client_id_ (_client) ])
+	.then (([ client_id ]) => go
 	.then (_ => {
 		if (not (client_id_ (_client))) {
 			;panic ('Your session has expired!') } } )
 	.then (_ => {
-		;remove_ (client_id_ (_client)) (_email) } ) ) ) ),
+		;remove_ (client_id_ (_client)) (_email) } ) ) ) ) ),
 
 where
 
 
+
+
+
+
+
+
+
 // TODO: graphql
-, id_by_email_ = _email =>
-	pinpoint
-	( L .entries, L .when (pinpoint (([ _, _credential ]) => pinpoint (as (credential) .email) (_credential), equals (_email)))
-	, ([ _id, _ ]) => _id
-	) (credentials )
 , id_credential_ = lift_defined (_id =>
 	pinpoint (
 	_id
@@ -215,6 +225,11 @@ where
 		, L .any (equals (id_email_ (_id))) (L .elems) ) )
 	) (teams ) )
 , client_id_ = _client => pinpoint (_client) (clients)
+, id_by_email_ = _email =>
+	pinpoint
+	( L .entries, L .when (pinpoint (([ _, _credential ]) => pinpoint (as (credential) .email) (_credential), equals (_email)))
+	, ([ _id, _ ]) => _id
+	) (credentials )
 , user_by_login_ = ({ _email, _password }) =>
 	pinpoint
 	( L .entries, L .when (([ _, _credential ]) => equals (_credential) (credential (_email, _password)))
@@ -279,9 +294,9 @@ where
 , reject_ = _id => _email => {
 	;teams [id_by_email_ (_email)] = L .remove ([ as (team) .invitations, L .elems, L .when (equals (id_email_ (_id))) ]) (team_by_email_ (_email)) }
 , uninvite_ = _id => _email => {
-	;teams [_id] = L .remove ([ as (team) .invitations, L .elems, L .when (equals (_email)) ]) (id_presumed_team (_id)) }
+	;teams [_id] = L .remove ([ as (team) .invitations, L .elems, L .when (equals (_email)) ]) (id_presumed_team_ (_id)) }
 , rename_team_ = _id => _name => {
-	;teams [_id] = L .set (as (team) .name) (_name) (id_presumed_team (_id)) }
+	;teams [_id] = L .set (as (team) .name) (_name) (id_presumed_team_ (_id)) }
 
 
 , id_email_ = _id =>
@@ -294,7 +309,7 @@ where
 	( id_captain_team
 	, id_member_team )
 	) (_id )
-, id_presumed_team = _id =>
+, id_presumed_team_ = _id =>
 	pinpoint (
 	id_team_, L .valueOr (team (_id, 'Unnamed', mention .link (_id), [], []))
 	) (_id )
@@ -309,9 +324,9 @@ where
 , user_by_email_ = _email =>
 	id_user_ (id_by_email_ (_email))
 , team_by_user_ = _user =>
-	id_presumed_team (user_id_ (_user))
+	id_presumed_team_ (user_id_ (_user))
 , team_by_email_ = _email =>
-	id_presumed_team (id_by_email_ (_email))
+	id_presumed_team_ (id_by_email_ (_email))
 , email_by_user_ = _user =>
 	id_email_ (user_id_ (_user))
 
@@ -377,6 +392,16 @@ where
 	(c == 'x' ? r : (r & 0x3 | 0x8)) .toString (16) ) )
 
 , invariant_on_ = fn => x => equals (x) (fn (x))
+
+
+// graphql
+
+, graphql_endpoint = 'http://cms.pons.ai:4000/graphql'
+, _fetch = query =>
+	fetch (graphql_endpoint, query)
+	.then (_req => _req .json ())
+	.then ()
+	.catch (_err => ({ error: _err }))
 
 
 
